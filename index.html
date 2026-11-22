@@ -1,0 +1,1290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Barracuda Dash Settings</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a header with the connection state, a page list (side rail on wide screens, scrolling chips on phones),
+   one settings page at a time. Dark first like the night dash; a light set for garage daylight. */
+:root{
+  --bg:#0d0e10; --panel:#16181b; --raise:#1d2024; --line:#2b2f34; --fg:#efebe1; --muted:#a39e92;
+  --accent:#ee7a1c; --accent-ink:#140a02; --ok:#5ec27e; --warn:#f2c21b; --crit:#ff5446; --info:#6fa3e0;
+  --chg:#ee7a1c; --chg-bg:rgba(238,122,28,.28);
+  --num:Oswald,'Arial Narrow',sans-serif; --sans:Barlow,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#f3f1ec; --panel:#ffffff; --raise:#f7f5f0; --line:#dcd7cc; --fg:#1b1a17; --muted:#6b665b;
+  --accent:#c85d08; --accent-ink:#ffffff; --ok:#21844a; --warn:#9a7300; --crit:#c62a1d; --info:#2f67ad;
+  --chg:#c85d08; --chg-bg:rgba(200,93,8,.18); color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#f3f1ec; --panel:#ffffff; --raise:#f7f5f0; --line:#dcd7cc; --fg:#1b1a17; --muted:#6b665b;
+  --accent:#c85d08; --accent-ink:#ffffff; --ok:#21844a; --warn:#9a7300; --crit:#c62a1d; --info:#2f67ad;
+  --chg:#c85d08; --chg-bg:rgba(200,93,8,.18); color-scheme:light}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.45 var(--sans);margin:0}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line);
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+.brand{font:500 20px/1 var(--num);letter-spacing:3px}
+.brand small{display:block;font:500 11px/1.2 var(--sans);letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-top:3px}
+.conn{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pill{font:600 11px/1 var(--sans);letter-spacing:1px;text-transform:uppercase;padding:6px 9px;border-radius:99px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.ok{color:var(--ok);border-color:var(--ok)}.pill.warn{color:var(--warn);border-color:var(--warn)}.pill.crit{color:var(--crit);border-color:var(--crit)}.pill.info{color:var(--info);border-color:var(--info)}
+.shell{display:grid;grid-template-columns:210px minmax(0,1fr);gap:20px;max-width:1180px;margin:0 auto;
+  padding-block:16px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+nav.pages{display:flex;flex-direction:column;gap:2px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 72px);align-self:start}
+nav.pages button{all:unset;cursor:pointer;padding:9px 12px;border-radius:8px;color:var(--muted);font-weight:500}
+nav.pages button:hover{color:var(--fg);background:var(--raise)}
+nav.pages button[aria-current="page"]{color:var(--fg);background:var(--raise);box-shadow:inset 3px 0 0 var(--accent)}
+nav.pages button:focus-visible{outline:2px solid var(--accent)}
+@media (max-width:820px){
+  .shell{grid-template-columns:minmax(0,1fr);gap:12px}
+  nav.pages{flex-direction:row;overflow-x:auto;position:sticky;top:calc(env(safe-area-inset-top,0px) + 58px);z-index:10;background:var(--bg);padding-block:6px;margin-inline:-4px;scrollbar-width:none}
+  nav.pages button{white-space:nowrap;padding:8px 11px}
+  nav.pages button[aria-current="page"]{box-shadow:inset 0 -2px 0 var(--accent)}
+}
+main{min-width:0}
+h1{font:500 26px/1.1 var(--num);letter-spacing:1px;margin:0 0 4px;text-wrap:balance}
+.lede{color:var(--muted);margin:0 0 16px;max-width:68ch}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;min-width:0}
+.card>h2{font:600 12px/1 var(--sans);letter-spacing:1.6px;text-transform:uppercase;color:var(--muted);margin:2px 0 12px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:820px){.grid2,.grid3{grid-template-columns:minmax(0,1fr)}}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.f{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.f:first-of-type{border-top:0}
+.f>label,.f>.lb{font-weight:500;flex:1 1 140px;min-width:0}
+.f .hint{flex-basis:100%;color:var(--muted);font-size:13px;margin:0}
+.f .ctl{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-left:auto;max-width:100%}
+.f.wide>.lb{flex-basis:100%}.f.wide .ctl{justify-content:flex-start;margin-left:0}
+button,.btn{font:500 14px/1 var(--sans);color:var(--fg);background:var(--raise);border:1px solid var(--line);border-radius:9px;min-height:38px;padding:0 14px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.danger{color:var(--crit);border-color:color-mix(in srgb,var(--crit) 50%,var(--line))}
+button.sm{min-height:30px;padding:0 10px;font-size:13px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;border-radius:0;background:transparent;min-height:34px;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-checked="true"]{background:var(--accent);color:var(--accent-ink)}
+select,input[type=number],input[type=text],textarea{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;min-height:36px;padding:0 9px;font:inherit}
+select{padding-right:4px;max-width:100%}
+input[type=number]{width:104px;font-variant-numeric:tabular-nums}
+input[type=text]{min-width:0}
+textarea{width:100%;min-height:120px;padding:8px;font:12px/1.4 var(--mono)}
+input[type=range]{accent-color:var(--accent);width:180px;max-width:100%}
+input[type=color]{width:48px;height:34px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.sw{position:relative;width:46px;height:26px;flex:none}
+.sw input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.sw span{position:absolute;inset:0;border-radius:99px;background:var(--line);transition:background .15s}
+.sw span::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:var(--fg);transition:transform .15s}
+.sw input:checked+span{background:var(--accent)}.sw input:checked+span::after{transform:translateX(20px);background:var(--accent-ink)}
+.sw input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px}
+.kv dt{color:var(--muted)}.kv dd{margin:0;text-align:right;font:500 15px/1.3 var(--num);letter-spacing:.5px;font-variant-numeric:tabular-nums}
+.big{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:820px){.big{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{background:var(--raise);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+.tile b{display:block;font:500 28px/1 var(--num);font-variant-numeric:tabular-nums}
+.tile span{display:block;color:var(--muted);font-size:12px;letter-spacing:1px;text-transform:uppercase;margin-top:6px}
+.tile em{font-style:normal;font-size:12px;color:var(--muted)}
+.note{color:var(--muted);font-size:13px;margin:8px 0 0;max-width:72ch}
+.callout{border:1px solid var(--line);border-left:3px solid var(--info);border-radius:8px;padding:10px 12px;background:var(--raise);font-size:14px;margin-bottom:14px}
+.callout.warn{border-left-color:var(--warn)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{font:600 11px/1 var(--sans);letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--panel);position:sticky;top:0}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:13px}
+.mono{font-family:var(--mono);font-size:13px}
+/* sniffer */
+.sniff tr{cursor:pointer}
+.sniff tr:hover td{background:var(--raise)}
+.sniff tr.sel td{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.bytes{display:inline-flex;gap:3px;font:13px/1 var(--mono)}
+.bytes i{font-style:normal;display:inline-block;width:2.4ch;text-align:center;padding:4px 0;border-radius:4px;transition:background 1.2s,color 1.2s}
+.bytes i.c{background:var(--chg-bg);color:var(--chg);transition:none}
+.bytes i.quiet{opacity:.35}
+.bytes i.na{opacity:.15}
+.idc{font:600 13px/1 var(--mono);white-space:nowrap}
+.idc small{font:500 10px/1 var(--sans);color:var(--info);margin-left:4px;letter-spacing:.5px}
+.lbl{color:var(--muted);font-size:12px;max-width:16ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bitgrid{display:grid;grid-template-columns:auto repeat(8,minmax(0,1fr));gap:3px;font:12px/1 var(--mono);max-width:520px}
+.bitgrid div{padding:6px 0;text-align:center;border-radius:4px;background:var(--raise);user-select:none}
+.bitgrid .h{background:transparent;color:var(--muted)}
+.bitgrid .b{cursor:pointer;border:1px solid transparent}
+.bitgrid .b.on{color:var(--fg)}.bitgrid .b.off{color:var(--muted)}
+.bitgrid .b.in{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 18%,var(--raise))}
+.bitgrid .b.msb{box-shadow:inset 0 0 0 2px var(--accent)}
+.bitgrid .b.c{color:var(--chg)}
+canvas.chart{width:100%;height:150px;display:block;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.valbig{font:500 34px/1 var(--num);font-variant-numeric:tabular-nums}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--panel);border:1px solid var(--accent);color:var(--fg);border-radius:99px;padding:9px 16px;font-size:14px;opacity:0;transition:.2s;pointer-events:none;z-index:50;max-width:calc(100vw - 32px)}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.toast.err{border-color:var(--crit)}
+.confirm{display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.confirm.on{display:flex}
+.welcome{max-width:760px}
+.welcome .grid2 .card{margin:0}
+ol.steps{margin:6px 0 0;padding-left:20px}ol.steps li{margin-bottom:4px}
+.sigrow{display:grid;grid-template-columns:110px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.sigrow:first-of-type{border-top:0}
+@media (max-width:620px){.sigrow{grid-template-columns:minmax(0,1fr) auto}.sigrow .rs{grid-column:1/-1}}
+.dim{color:var(--muted)}
+.ok{color:var(--ok)}.warnc{color:var(--warn)}.critc{color:var(--crit)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="brand">BARRACUDA DASH<small>Gauge settings</small></div>
+  <div class="conn">
+    <span class="pill" id="connPill">Not connected</span>
+    <button id="btnDemo" class="sm">Demo</button>
+    <button id="btnConnect" class="pri sm">Connect</button>
+  </div>
+</header>
+<div class="shell">
+  <nav class="pages" id="nav" aria-label="Settings pages"></nav>
+  <main id="main"></main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="fileIn" accept=".json,application/json" hidden>
+<script>
+'use strict';
+// ===================== protocol (README "Phone app protocol", protocol 2) =====================
+const SVC = '6f8a0001-5c3e-4b8e-9b52-1f6d1e0a6701';
+const RXC = '6f8a0002-5c3e-4b8e-9b52-1f6d1e0a6701';
+const TXC = '6f8a0003-5c3e-4b8e-9b52-1f6d1e0a6701';
+// replies that carry no id: matched by their type
+const NOID_REPLY = { status: 'status', obdScanResults: 'scan', dtc: 'dtc', dtcIgnore: 'dtc' };
+
+class Link {
+  constructor() { this.nextId = 1; this.pending = new Map(); this.byType = []; this.listeners = new Set(); this.buf = ''; }
+  on(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
+  feedText(s) {
+    this.buf += s;
+    let i;
+    while ((i = this.buf.indexOf('\n')) >= 0) {
+      const line = this.buf.slice(0, i).trim();
+      this.buf = this.buf.slice(i + 1);
+      if (!line) continue;
+      let m;
+      try { m = JSON.parse(line); } catch (e) { console.warn('bad line from gauge', line); continue; }
+      this.dispatch(m);
+    }
+    if (this.buf.length > 65536) this.buf = '';
+  }
+  dispatch(m) {
+    if (m.id != null && this.pending.has(m.id)) {
+      const p = this.pending.get(m.id); this.pending.delete(m.id); clearTimeout(p.timer);
+      if (m.t === 'err') p.reject(new Error(m.msg || 'error')); else p.resolve(m);
+    } else if (m.t === 'err' && m.id == null && this.byType.length) {
+      const p = this.byType.shift(); clearTimeout(p.timer); p.reject(new Error(m.msg || 'error'));
+    } else {
+      const k = this.byType.findIndex((w) => w.t === m.t);
+      if (k >= 0) { const p = this.byType.splice(k, 1)[0]; clearTimeout(p.timer); p.resolve(m); }
+    }
+    for (const fn of this.listeners) { try { fn(m); } catch (e) { console.error(e); } }
+  }
+  request(op, fields, timeoutMs) {
+    const t = NOID_REPLY[op];
+    const msg = Object.assign({ op }, fields || {});
+    return new Promise((resolve, reject) => {
+      const ms = timeoutMs || 8000;
+      if (t) {
+        const w = { t, resolve, reject };
+        w.timer = setTimeout(() => { const k = this.byType.indexOf(w); if (k >= 0) this.byType.splice(k, 1); reject(new Error('the gauge did not answer')); }, ms);
+        this.byType.push(w);
+      } else {
+        msg.id = this.nextId++;
+        const p = { resolve, reject };
+        p.timer = setTimeout(() => { this.pending.delete(msg.id); reject(new Error('the gauge did not answer')); }, ms);
+        this.pending.set(msg.id, p);
+      }
+      this.send(JSON.stringify(msg) + '\n').catch((e) => reject(e));
+    });
+  }
+  failAll(err) {
+    for (const p of this.pending.values()) { clearTimeout(p.timer); p.reject(err); }
+    for (const p of this.byType) { clearTimeout(p.timer); p.reject(err); }
+    this.pending.clear(); this.byType = [];
+  }
+}
+
+class BleLink extends Link {
+  constructor() { super(); this.kind = 'ble'; this.q = Promise.resolve(); this.dec = new TextDecoder(); }
+  static available() { return !!(navigator.bluetooth && window.isSecureContext); }
+  async connect(onDrop) {
+    this.dev = await navigator.bluetooth.requestDevice({ filters: [{ services: [SVC] }] });
+    this.dev.addEventListener('gattserverdisconnected', () => { this.failAll(new Error('disconnected')); onDrop && onDrop(); });
+    const server = await this.dev.gatt.connect();
+    const svc = await server.getPrimaryService(SVC);
+    this.rx = await svc.getCharacteristic(RXC);
+    this.tx = await svc.getCharacteristic(TXC);
+    this.tx.addEventListener('characteristicvaluechanged', (e) => this.feedText(this.dec.decode(e.target.value, { stream: true })));
+    await this.tx.startNotifications();
+    this.name = this.dev.name || 'speedometer';
+  }
+  // the speedo takes one request line up to 1023 bytes, in any number of writes
+  send(text) {
+    const bytes = new TextEncoder().encode(text);
+    this.q = this.q.then(async () => {
+      for (let o = 0; o < bytes.length; o += 180) {
+        const part = bytes.slice(o, o + 180);
+        if (this.rx.writeValueWithResponse) await this.rx.writeValueWithResponse(part); else await this.rx.writeValue(part);
+      }
+    });
+    return this.q;
+  }
+  disconnect() { try { this.dev && this.dev.gatt.disconnect(); } catch (e) {} }
+}
+
+// ===================== CAN rule maths (same as quad/can_bus.c) =====================
+const SIGS = [
+  { k: 'rpm', name: 'RPM', gauge: 'Tach', units: [['native', 'rpm']], src: 'srcRpm' },
+  { k: 'speed', name: 'Speed', gauge: 'Speedo', units: [['native', 'mph'], ['kmh', 'km/h']], src: 'speedSrc' },
+  { k: 'coolant', name: 'Coolant', gauge: 'Quad', units: [['native', '°F'], ['c', '°C']], src: 'srcCoolant' },
+  { k: 'volts', name: 'Volts', gauge: 'Quad', units: [['native', 'V']], src: 'srcVolts' },
+  { k: 'fuel', name: 'Fuel', gauge: 'Quad', units: [['native', '%'], ['fraction', '0 to 1']], src: 'srcFuel' },
+  { k: 'oil', name: 'Oil pressure', gauge: 'Quad', units: [['native', 'psi'], ['kpa', 'kPa'], ['bar', 'bar']], src: 'srcOil' },
+];
+const GAUGE_UNIT = { rpm: 'rpm', speed: 'mph', coolant: '°F', volts: 'V', fuel: '%', oil: 'psi' };
+
+function bitsOf(rule) {   // list of bit positions, most significant first
+  const out = [];
+  if (!rule.be) { for (let i = rule.len - 1; i >= 0; i--) out.push(rule.start + i); }
+  else { let b = rule.start; for (let i = 0; i < rule.len; i++) { out.push(b); b = (b & 7) === 0 ? b + 15 : b - 1; } }
+  return out;
+}
+function ruleFits(rule) { return bitsOf(rule).every((b) => b >= 0 && b <= 63); }
+// raw value of the bits, in the rule's own unit (before conversion to the gauge unit)
+function ruleRaw(rule, data) {
+  if (!rule || rule.len < 1 || rule.len > 32) return null;
+  if (rule.mux && (rule.mux.byte >= data.length || data[rule.mux.byte] !== rule.mux.value)) return null;
+  const bits = bitsOf(rule); const n = data.length * 8;
+  let raw = 0n;
+  for (const b of bits) { if (b < 0 || b >= n) return null; raw = (raw << 1n) | BigInt((data[b >> 3] >> (b & 7)) & 1); }
+  let v = Number(raw);
+  if (rule.signed && (raw >> BigInt(rule.len - 1)) & 1n) v = v - 2 ** rule.len;
+  return v * rule.scale + rule.offset;
+}
+function toGauge(v, unit) {
+  switch (unit) { case 'kmh': return v / 1.609344; case 'c': return v * 9 / 5 + 32; case 'kpa': return v * 0.1450377;
+    case 'bar': return v * 14.50377; case 'fraction': return v * 100; default: return v; }
+}
+function ruleDecode(rule, data) { if (!rule || !rule.on) return null; const r = ruleRaw(rule, data); return r == null ? null : toGauge(r, rule.unit); }
+const hex2 = (b) => b.toString(16).toUpperCase().padStart(2, '0');
+const idText = (id, ext) => ext ? id.toString(16).toUpperCase().padStart(8, '0') : id.toString(16).toUpperCase().padStart(3, '0');
+const hexToBytes = (h) => { const a = []; for (let i = 0; i + 1 < h.length; i += 2) a.push(parseInt(h.substr(i, 2), 16)); return a; };
+</script>
+<script>
+'use strict';
+// ===================== settings fields (phone.c FIELDS) =====================
+const FIELDS = {
+  faceMode: [0, 2], dashWire: [0, 1], dayStyle: [0, 1], nightStyle: [0, 1], glow: [0, 100], fade: [0, 100],
+  dayBright: [5, 100], nightBright: [5, 100], followDimmer: [0, 1], redline: [2000, 6000], rpmRunning: [100, 2000],
+  oilLowPsi: [0, 80], tempHighF: [0, 260], voltsLowCv: [0, 1600], voltsHighCv: [0, 1800], fuelLowPct: [0, 50],
+  fuelEmptyPct: [0, 50], speedSrc: [0, 6], pulsesPerMile: [100, 200000], creepMphX10: [0, 50], srcRpm: [0, 4],
+  srcCoolant: [0, 4], srcVolts: [0, 4], srcFuel: [0, 4], srcOil: [1, 4], canOn: [0, 1], canRate: [0, 4], engGround: [0, 1],
+  tachPulsesPerRevX2: [1, 24], fuelEmptyOhmX10: [0, 60000], fuelFullOhmX10: [0, 60000], oilOhm0X10: [0, 60000],
+  oilOhm80X10: [0, 60000], coolOhmAX10: [1, 60000], coolTempAF: [32, 300], coolOhmBX10: [1, 60000], coolTempBF: [32, 300],
+  voltsTrimCv: [-200, 200], unitsMetricSpeed: [0, 1], unitsC: [0, 1], unitsBar: [0, 1],
+};
+const READ_ONLY_KEYS = ['obdPaired', 'obdAddr'];
+
+// ===================== demo gauges (no hardware): acts like the speedo firmware =====================
+class DemoLink extends Link {
+  constructor() {
+    super(); this.kind = 'demo'; this.name = 'Demo gauges';
+    this.S = {
+      faceMode: 0, dashWire: 1, dayStyle: 0, nightStyle: 1, lightColor: '#ece6d2', glow: 60, fade: 35, dayBright: 100,
+      nightBright: 45, followDimmer: 1, redline: 5500, rpmRunning: 500, oilLowPsi: 15, tempHighF: 230, voltsLowCv: 1150,
+      voltsHighCv: 1500, fuelLowPct: 12, fuelEmptyPct: 2, speedSrc: 2, pulsesPerMile: 16000, creepMphX10: 15,
+      srcRpm: 2, srcCoolant: 2, srcVolts: 2, srcFuel: 1, srcOil: 1, canOn: 1, canRate: 0, engGround: 0, tachPulsesPerRevX2: 8,
+      fuelEmptyOhmX10: 730, fuelFullOhmX10: 100, oilOhm0X10: 720, oilOhm80X10: 120, coolOhmAX10: 800, coolTempAF: 120,
+      coolOhmBX10: 150, coolTempBF: 230, voltsTrimCv: 0, unitsMetricSpeed: 0, unitsC: 0, unitsBar: 0,
+      canRules: SIGS.map((s) => ({ sig: s.k, on: false, id: 0, ext: false, be: false, signed: false, start: 0, len: 8, scale: 1, offset: 0, unit: 'native', mux: null })),
+      obdPaired: true, obdAddr: 'c4:7f:51:2a:90:13',
+    };
+    this.odo = 3563.6; this.tripA = 128.4; this.tripB = 892.7; this.tripShown = 'A'; this.odoLog = [];
+    this.ignored = new Set(['P0700']);
+    this.t0 = performance.now(); this.boostUntil = 0; this.stream = false; this.sniff = false; this.focus = null;
+    this.cal = { mode: 'idle', pulses: 0, gpsMiles: 0, paused: false };
+    this.ids = new Map(); this.canAcc = new Map(); this.canVal = {}; this.ctr = 0; this.rateFound = 0; this.rateSearchT = 0;
+    this.testWarn = false; this.benchDemo = false;
+    this.timer = setInterval(() => this.tick(), 50);
+  }
+  async connect() { await new Promise((r) => setTimeout(r, 300)); }
+  disconnect() { clearInterval(this.timer); }
+  reply(o) { setTimeout(() => this.feedText(JSON.stringify(o) + '\n'), 25 + Math.random() * 40); }
+  rev() { this.boostUntil = performance.now() + 2200; }
+  // ---- the car ----
+  car() {
+    const t = (performance.now() - this.t0) / 1000;
+    const cyc = t % 120;      // two-minute loop: idle, pull away, cruise, slow down
+    let kmh = cyc < 15 ? 0 : cyc < 35 ? (cyc - 15) * 4.6 : cyc < 85 ? 92 + 6 * Math.sin(cyc / 5) : cyc < 105 ? Math.max(0, 92 - (cyc - 85) * 4.6) : 0;
+    const boost = performance.now() < this.boostUntil ? 1 : 0;
+    const gear = kmh < 1 ? 0 : kmh < 30 ? 1 : kmh < 60 ? 2 : 3;
+    const ratio = [0, 75, 48, 31][gear];
+    let rpm = gear ? 800 + kmh * ratio * 0.62 : 760 + 25 * Math.sin(t * 3);
+    rpm += boost * 2600 * Math.min(1, (this.boostUntil - performance.now()) / 600 + 0.3);
+    const thr = boost ? 75 : gear && cyc < 35 ? 40 : gear ? 18 : 0;
+    const coolC = Math.min(92, 58 + t * 0.6);
+    const fuel = 62 - (t % 600) * 0.005;
+    const volts = 14.1 + 0.05 * Math.sin(t);
+    const oilKpa = 150 + rpm * 0.055;
+    return { t, kmh, mph: kmh / 1.609344, rpm: Math.max(0, rpm), thr, coolC, fuel, volts, oilKpa, running: true };
+  }
+  // ---- CAN bus (a made-up car, so buyers can practice finding signals) ----
+  canIds() {
+    return [
+      { id: 0x0C9, ms: 20, gen: (c, n) => { const r = Math.round(c.rpm * 4); return [c.running ? 0x80 : 0, r >> 8 & 255, r & 255, 0, Math.round(c.thr * 2.55), 0, 0, (n & 15) << 4]; } },
+      { id: 0x3E9, ms: 100, gen: (c) => { const v = Math.round(c.kmh * 100); return [v >> 8, v & 255, v >> 8, v & 255, 0, 0, 0, 0]; } },
+      { id: 0x4C1, ms: 500, gen: (c) => [0, 0, Math.round(c.coolC + 40), 0, Math.round(31 + 40), 0, 0, 0] },
+      { id: 0x4D1, ms: 500, gen: (c) => [0, Math.round(c.oilKpa / 4), 0, 0x20, 0, 0, 0, 0] },
+      { id: 0x3D1, ms: 500, gen: (c) => [0x01, Math.round(c.fuel * 2.55), 0, 0, 0, 0] },
+      { id: 0x1C3, ms: 250, gen: (c) => [Math.round(c.volts * 10), 0, 0, 0] },
+      { id: 0x120, ms: 50, gen: (c, n) => [n & 255, (n * 37 + 11) & 255, 0, 0] },
+      { id: 0x1E5, ms: 20, gen: (c) => { const a = Math.round(40 * Math.sin(c.t / 3) + (Math.random() * 6 - 3)) & 0xFFFF; return [0, a & 255, a >> 8, 0, 0, 0, 0, 0]; } },
+      { id: 0x348, ms: 50, gen: (c) => { const o = []; for (let w = 0; w < 4; w++) { const v = Math.max(0, Math.round(c.kmh * 50 + (c.kmh ? Math.random() * 8 : 0))); o.push(v & 255, v >> 8); } return o; } },
+      { id: 0x0F1, ms: 100, gen: (c) => [0, (c.t % 120) > 85 && (c.t % 120) < 106 ? 0x02 : 0, 0, 0] },
+      { id: 0x2F9, ms: 1000, gen: () => [0x12, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00] },
+      { id: 0x18FEF100, ext: true, ms: 100, gen: (c) => { const v = Math.round(c.kmh * 256); return [0xF3, v & 255, v >> 8, 0x00, 0x00, 0x00, 0x00, 0xFF]; } },
+    ];
+  }
+  tick() {
+    const c = this.car(); this.lastCar = c;
+    if (this.S.canOn) {
+      if (!this.defs) this.defs = this.canIds();
+      if (!this.rateFound) { this.rateSearchT += 50; if (this.rateSearchT > (this.S.canRate === 0 ? 1600 : 200)) this.rateFound = this.S.canRate || 3; }
+      if (this.rateFound && (this.S.canRate === 0 || this.S.canRate === 3)) {
+        for (const d of this.defs) {
+          const acc = (this.canAcc.get(d.id) || 0) + 50; let n = Math.floor(acc / d.ms); this.canAcc.set(d.id, acc - n * d.ms);
+          while (n-- > 0) this.frame(d, c);
+        }
+      }
+      if (this.sniff) this.sendSniff();
+    } else { this.ids.clear(); this.rateFound = 0; this.rateSearchT = 0; }
+    if (this.stream && (this.ctr++ % 10) === 0) this.reply(this.status());
+    if (this.cal.mode === 'gpsMile') { this.cal.pulses += Math.round(c.mph * 16000 / 3600 * 0.05); this.cal.gpsMiles += c.mph * 0.05 / 3600 * 20; if (this.cal.gpsMiles >= 1) { this.cal.lastResult = Math.round(this.cal.pulses / this.cal.gpsMiles); this.S.pulsesPerMile = this.cal.lastResult; this.cal.mode = 'idle'; } }
+    if (this.cal.mode === 'markers') this.cal.pulses += Math.round(c.mph * 16000 / 3600 * 0.05);
+    if (c.mph >= this.S.creepMphX10 / 10) { const mi = c.mph * 0.05 / 3600; this.odo += mi; this.tripA += mi; this.tripB += mi; }
+  }
+  frame(d, c) {
+    const key = d.id + (d.ext ? 0x80000000 : 0);
+    let e = this.ids.get(key);
+    const data = d.gen(c, e ? e.count : 0);
+    if (!e) { e = { id: d.id, ext: !!d.ext, dlc: data.length, data: data.slice(), changed: 0, dirty: true, count: 0, sent: 0 }; this.ids.set(key, e); }
+    for (let i = 0; i < 8; i++) if ((e.data[i] || 0) !== (data[i] || 0)) e.changed |= 1 << i;
+    if (e.changed) e.dirty = true;
+    e.data = data.slice(); e.dlc = data.length; e.count++;
+    this.S.canRules.forEach((r) => { if (r.on && r.id === d.id && !!r.ext === !!d.ext) { const v = ruleDecode(r, data); if (v != null) this.canVal[r.sig] = { v, t: performance.now() }; } });
+  }
+  canValue(sig) { const r = this.S.canRules.find((x) => x.sig === sig); const x = this.canVal[sig]; return this.S.canOn && r && r.on && x && performance.now() - x.t < 1000 ? x.v : null; }
+  sendSniff() {
+    const now = performance.now(), out = [], picked = new Set();
+    const put = (k, e) => { out.push([e.id, e.ext ? 1 : 0, e.dlc, e.data.map(hex2).join('').toLowerCase(), e.count & 0xFFFF, e.changed]); e.changed = 0; e.dirty = false; e.sent = now; picked.add(k); };
+    if (this.focus) { const k = this.focus.id + (this.focus.ext ? 0x80000000 : 0); const e = this.ids.get(k); if (e) put(k, e); }
+    while (out.length < 6) {
+      let best = null, bk = null;
+      for (const [k, e] of this.ids) { if (picked.has(k)) continue; if (!e.dirty && e.sent && now - e.sent < 1000) continue; if (!best || e.sent < best.sent) { best = e; bk = k; } }
+      if (!best) break; put(bk, best);
+    }
+    if (out.length) this.reply({ t: 'can', f: out });
+  }
+  status() {
+    const c = this.lastCar || this.car(), S = this.S;
+    const net = (src, obd, sig) => { const can = this.canValue(sig); if (src === 1) return [null, 0]; const isCan = src >= 3; const v = isCan ? can : obd; return v != null ? [v, isCan ? 2 : 1] : [null, 0]; };
+    const pick = (src, obd, sig, analog) => { const [v, f] = net(src, obd, sig); if (v != null) return [v, f]; return src === 0 || src === 3 ? [null, 0] : [analog, 0]; };
+    const [fuel, ff] = pick(S.srcFuel, null, 'fuel', c.fuel - 1.5);
+    const [temp, tf] = pick(S.srcCoolant, c.coolC * 9 / 5 + 32, 'coolant', c.coolC * 9 / 5 + 31);
+    const [volts, vf] = pick(S.srcVolts, c.volts, 'volts', c.volts - 0.04);
+    const [oil, of] = S.srcOil >= 3 ? pick(S.srcOil, null, 'oil', c.oilKpa * 0.145 - 1) : [c.oilKpa * 0.145 - 1, 0];
+    const gpsMph = c.mph, canMph = this.canValue('speed');
+    let mph = null, from = 'none';
+    switch (S.speedSrc) {
+      case 0: mph = gpsMph; from = 'gps'; break; case 1: from = 'none'; break; case 3: mph = c.mph; from = 'obd'; break; case 4: mph = c.mph; from = 'obd'; break;
+      case 5: if (canMph != null) { mph = canMph; from = 'can'; } break; case 6: if (canMph != null) { mph = canMph; from = 'can'; } else { mph = gpsMph; from = 'gps'; } break;
+      default: mph = gpsMph; from = 'gps';
+    }
+    const canRpm = this.canValue('rpm');
+    const tachRpm = S.srcRpm >= 3 ? (canRpm != null ? canRpm : S.srcRpm === 4 ? null : null) : c.rpm;
+    const kb = [0, 125, 250, 500, 1000];
+    const r1 = (v, d) => v == null ? null : Math.round(v * 10 ** d) / 10 ** d;
+    return {
+      t: 'status', mph: r1(mph, 1), speedFrom: from, odo: r1(this.odo, 1), tripA: r1(this.tripA, 1), tripB: r1(this.tripB, 1), tripShown: this.tripShown,
+      odoChanges: this.odoLog.length, odoFault: 'ok',
+      link: { hubSent: Math.round(c.t * 20), tachMissed: 0, quadMissed: 2, rxErrors: 0 },
+      gps: { present: true, fix: true, sats: 11, mph: r1(gpsMph, 1) }, cableMph: null,
+      obd: { state: 'up', rpm: r1(c.rpm, 0), mph: r1(c.mph, 1), coolantF: r1(c.coolC * 9 / 5 + 32, 0), volts: r1(c.volts, 2), fuelPct: null, pids: 'be3fa813a0000000000000000' },
+      cel: false, light: { night: false, bright: S.dayBright, wireVolts: 0.2, lightsOn: false, sunDown: false },
+      tach: { online: true, settingsOk: true, panelOk: true, rpm: r1(tachRpm, 0), coilRpm: null, warn: tachRpm != null && tachRpm >= S.redline ? 0x20 : 0, fw: '0.1' },
+      quad: { online: true, settingsOk: true, panelOk: true, running: true, fuelPct: r1(fuel, 0), oilPsi: r1(oil, 0), tempF: r1(temp, 0), volts: r1(volts, 2), warn: this.testWarn ? 0x1f : 0,
+        fromObd: (ff === 1 ? 1 : 0) | (tf === 1 ? 2 : 0) | (vf === 1 ? 4 : 0), fromCan: (ff === 2 ? 1 : 0) | (tf === 2 ? 2 : 0) | (vf === 2 ? 4 : 0) | (of === 2 ? 8 : 0),
+        rpmMissing: false, senderOpen: [], senderShort: [], raw: { fuelOhm: r1(senderOhmFor('fuel', c.fuel - 1.5, S), 1), oilOhm: 41.0, coolOhm: r1(senderOhmFor('coolant', c.coolC * 9 / 5 + 32 + (S.engGround ? 9 : 3), S), 1), battVolts: r1(c.volts - 0.04, 2), engineOffsetV: S.engGround ? null : 0.012 }, fw: '0.1' },
+      can: { on: !!S.canOn, receiving: !!(S.canOn && this.ids.size && (S.canRate === 0 || S.canRate === 3)), errors: !!(S.canOn && S.canRate && S.canRate !== 3), tableFull: false,
+        kbps: S.canOn && this.rateFound && (S.canRate === 0 || S.canRate === 3) ? 500 : 0, fps: S.canOn ? (S.canRate === 0 || S.canRate === 3 ? 247 : 0) : 0, ids: this.ids.size,
+        rpm: r1(canRpm, 0), mph: r1(canMph, 1), sniffing: this.sniff },
+      cal: Object.assign({}, this.cal, { gpsMiles: r1(this.cal.gpsMiles, 3) }), demo: this.benchDemo,
+    };
+  }
+  async send(text) {
+    for (const line of text.split('\n')) if (line.trim()) this.handle(JSON.parse(line));
+  }
+  handle(q) {
+    const S = this.S, ok = () => this.reply({ t: 'ok', op: q.op, id: q.id }), err = (msg) => this.reply({ t: 'err', op: q.op, id: q.id, msg });
+    switch (q.op) {
+      case 'hello': case 'version': return this.reply({ t: 'hello', id: q.id, fw: '0.2', build: 'demo', protocol: 2 });
+      case 'status': return this.reply(this.status());
+      case 'stream': this.stream = !!q.on; return ok();
+      case 'get': return this.reply({ t: 'settings', id: q.id, s: JSON.parse(JSON.stringify(S)) });
+      case 'set': {
+        const n = JSON.parse(JSON.stringify(S));
+        for (const [k, v] of Object.entries(q.s || {})) {
+          if (k === 'canRules') { for (const r of v) { const e = demoRuleCheck(r); if (e) return err(e); const i = n.canRules.findIndex((x) => x.sig === r.sig); n.canRules[i] = Object.assign({ ext: false, be: false, signed: false, unit: 'native', mux: null }, r); } continue; }
+          if (k === 'lightColor') { if (!/^#[0-9a-f]{6}$/i.test(v)) return err('color must be #rrggbb'); n[k] = v; continue; }
+          const f = FIELDS[k]; if (!f) return err('unknown setting');
+          if (typeof v !== 'number' || v < f[0] || v > f[1] || v !== Math.floor(v)) return err('value out of range');
+          n[k] = v;
+        }
+        if (n.srcOil === 0 || n.srcOil === 2) return err('oil pressure has no OBD source');
+        if (n.canRate !== S.canRate || n.canOn !== S.canOn) { this.rateFound = 0; this.rateSearchT = 0; this.ids.clear(); }
+        this.S = n; return ok();
+      }
+      case 'tripZero': if (q.trip === 'A') this.tripA = 0; else if (q.trip === 'B') this.tripB = 0; else return err('trip must be A or B'); return ok();
+      case 'tripShow': this.tripShown = q.trip === 'B' ? 'B' : 'A'; return ok();
+      case 'odoSet': if (!(q.miles >= 0 && q.miles <= 999999)) return err('miles 0 to 999999'); this.odoLog.unshift({ n: this.odoLog.length + 1, kind: 'app', from: Math.round(this.odo * 10) / 10, to: q.miles, time: q.phoneTime, timeFrom: 'phone' }); this.odo = q.miles; return ok();
+      case 'odoLog': return this.reply({ t: 'odoLog', id: q.id, count: this.odoLog.length, milesRemoved: 0, milesAdded: 0, mismatch: false, changes: this.odoLog });
+      case 'calGpsStart': this.cal = { mode: 'gpsMile', pulses: 0, gpsMiles: 0, paused: false, lastResult: this.cal.lastResult }; return ok();
+      case 'calMarkersStart': this.cal = { mode: 'markers', pulses: 0, gpsMiles: 0, paused: false, lastResult: this.cal.lastResult }; return ok();
+      case 'calMarkersStop': if (this.cal.mode !== 'markers' || this.cal.pulses < 100) return err('not enough pulses: is the cable sensor connected?'); this.cal.lastResult = Math.round(this.cal.pulses / q.miles); S.pulsesPerMile = this.cal.lastResult; this.cal.mode = 'idle'; return ok();
+      case 'calCancel': this.cal.mode = 'idle'; return ok();
+      case 'senderRecord': { const m = { fuelEmpty: ['fuelEmptyOhmX10', 382], fuelFull: ['fuelFullOhmX10', 382], oil0: ['oilOhm0X10', 410], oil80: ['oilOhm80X10', 410], coolA: ['coolOhmAX10', 246], coolB: ['coolOhmBX10', 246] }[q.point];
+        if (!m) return err('unknown point'); if (q.point.startsWith('cool')) { if (q.tempF == null) return err('tempF missing (read it off a thermometer)'); S[q.point === 'coolA' ? 'coolTempAF' : 'coolTempBF'] = Math.round(q.tempF); } S[m[0]] = m[1]; return ok(); }
+      case 'obdScan': this.scanT = performance.now(); setTimeout(() => this.reply(this.scanJson()), 2500); return ok();
+      case 'obdScanResults': return this.reply(this.scanJson());
+      case 'obdPair': S.obdPaired = true; S.obdAddr = q.addr; return ok();
+      case 'obdForget': S.obdPaired = false; delete S.obdAddr; return ok();
+      case 'dtc': case 'dtcIgnore': if (q.op === 'dtcIgnore') { if (q.ignore) this.ignored.add(q.code); else this.ignored.delete(q.code); }
+        return this.reply({ t: 'dtc', valid: true, cel: !this.ignored.has('P0420'), stored: [{ code: 'P0700', desc: 'Transmission control system malfunction', ignored: this.ignored.has('P0700') }, { code: 'P0420', desc: 'Catalyst efficiency below threshold, bank 1', ignored: this.ignored.has('P0420') }], pending: [] });
+      case 'dtcClear': return q.confirm ? ok() : err('needs confirm:true (also resets readiness monitors)');
+      case 'canSniff': if (q.on && !S.canOn) return err('turn CAN on first (canOn)'); this.sniff = !!q.on; this.focus = q.on && q.focus != null ? { id: q.focus, ext: !!q.ext } : null; return ok();
+      case 'sweep': return ok();
+      case 'testWarnings': this.testWarn = !!q.on; return ok();
+      case 'demo': this.benchDemo = !!q.on; return ok();
+      case 'factoryReset': case 'forgetPhones': return q.confirm ? ok() : err('needs confirm:true');
+      default: return err('unknown op');
+    }
+  }
+  scanJson() {
+    const running = this.scanT && performance.now() - this.scanT < 2400;
+    return { t: 'scan', running, devices: [{ addr: 'c4:7f:51:2a:90:13', addrType: 0, name: 'IOS-Vlink', rssi: -58, likelyObd: true }, { addr: '5a:11:0c:44:e2:01', addrType: 1, name: 'JBL Flip 5', rssi: -77, likelyObd: false }] };
+  }
+}
+// demo only: the sender resistance that reads as v with the current calibration
+function senderOhmFor(k, v, S) {
+  if (k === 'fuel') { const e = S.fuelEmptyOhmX10 / 10, f = S.fuelFullOhmX10 / 10; return e - (v / 100) * (e - f); }
+  const ra = S.coolOhmAX10 / 10, rb = S.coolOhmBX10 / 10, ta = (S.coolTempAF - 32) * 5 / 9 + 273.15, tb = (S.coolTempBF - 32) * 5 / 9 + 273.15;
+  const beta = Math.log(ra / rb) / (1 / ta - 1 / tb), t = (v - 32) * 5 / 9 + 273.15; return ra * Math.exp(beta * (1 / t - 1 / ta));
+}
+function demoRuleCheck(r) {
+  if (!SIGS.some((s) => s.k === r.sig)) return 'CAN rule sig must be rpm, speed, coolant, volts, fuel or oil';
+  if (!r.on && r.id == null) return null;
+  if (!(r.id >= 0 && r.id <= (r.ext ? 0x1FFFFFFF : 0x7FF))) return r.ext ? 'CAN rule id 0 to 1FFFFFFF' : 'CAN rule id 0 to 7FF (set ext for 29-bit IDs)';
+  if (!(r.start >= 0 && r.start <= 63)) return 'CAN rule start bit 0 to 63';
+  if (!(r.len >= 1 && r.len <= 32)) return 'CAN rule length 1 to 32 bits';
+  if (!r.scale) return 'CAN rule scale must be a non-zero number';
+  if (!ruleFits(r)) return 'CAN rule runs past the end of the frame';
+  const sig = SIGS.find((s) => s.k === r.sig); if (r.unit && !sig.units.some((u) => u[0] === r.unit)) return 'CAN rule unit not allowed for this reading';
+  return null;
+}
+</script>
+<script>
+'use strict';
+// ===================== app state and helpers =====================
+const App = { link: null, S: null, st: null, hello: null, page: 'welcome', canFrames: null };
+const $ = (s, el) => (el || document).querySelector(s);
+const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const store = { get(k, d) { try { const v = localStorage.getItem('bd.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('bd.' + k, JSON.stringify(v)); } catch (e) {} } };
+let toastT;
+function toast(msg, isErr) { const t = $('#toast'); t.textContent = msg; t.className = 'toast on' + (isErr ? ' err' : ''); clearTimeout(toastT); toastT = setTimeout(() => t.className = 'toast', isErr ? 4200 : 1800); }
+
+// units for display; the gauges store mph, deg F and psi
+const U = {
+  metric: () => App.S && App.S.unitsMetricSpeed, c: () => App.S && App.S.unitsC, bar: () => App.S && App.S.unitsBar,
+  spd(mph, d = 0) { return mph == null ? '–' : (U.metric() ? mph * 1.609344 : mph).toFixed(d); }, spdU() { return U.metric() ? 'km/h' : 'mph'; },
+  tmp(f) { return f == null ? '–' : (U.c() ? (f - 32) * 5 / 9 : f).toFixed(0); }, tmpU() { return U.c() ? '°C' : '°F'; },
+  prs(p) { return p == null ? '–' : U.bar() ? (p / 14.50377).toFixed(2) : p.toFixed(0); }, prsU() { return U.bar() ? 'bar' : 'psi'; },
+  dist(mi, d = 1) { return mi == null ? '–' : (U.metric() ? mi * 1.609344 : mi).toFixed(d); }, distU() { return U.metric() ? 'km' : 'mi'; },
+};
+// conversions for number fields: gauge value <-> what the owner types
+const CONV = {
+  temp: { to: (f) => U.c() ? Math.round((f - 32) * 5 / 9) : f, from: (v) => U.c() ? Math.round(v * 9 / 5 + 32) : Math.round(v), unit: () => U.tmpU() },
+  psi: { to: (p) => U.bar() ? +(p / 14.50377).toFixed(2) : p, from: (v) => U.bar() ? Math.round(v * 14.50377) : Math.round(v), unit: () => U.prsU() },
+  cv: { to: (c) => +(c / 100).toFixed(2), from: (v) => Math.round(v * 100), unit: () => 'V' },
+  x10: { to: (x) => +(x / 10).toFixed(1), from: (v) => Math.round(v * 10), unit: () => 'ohm' },
+  mph10: { to: (x) => +(U.metric() ? x / 10 * 1.609344 : x / 10).toFixed(1), from: (v) => Math.round((U.metric() ? v / 1.609344 : v) * 10), unit: () => U.spdU() },
+  none: { to: (x) => x, from: (v) => Math.round(v), unit: () => '' },
+};
+
+// ===================== controls =====================
+function seg(key, opts) {
+  return '<div class="seg" role="radiogroup">' + opts.map(([v, l]) => '<button type="button" role="radio" data-key="' + key + '" data-val="' + v + '" aria-checked="' + (App.S[key] === v) + '">' + esc(l) + '</button>').join('') + '</div>';
+}
+function sel(key, opts, id) {
+  return '<select id="' + (id || 's-' + key) + '" data-key="' + key + '" data-kind="num">' + opts.map(([v, l]) => '<option value="' + v + '"' + (App.S[key] === v ? ' selected' : '') + '>' + esc(l) + '</option>').join('') + '</select>';
+}
+function tog(key, id) { return '<label class="sw"><input type="checkbox" id="' + (id || 't-' + key) + '" data-key="' + key + '" data-kind="bool"' + (App.S[key] ? ' checked' : '') + '><span></span></label>'; }
+function num(key, conv, step) {
+  const c = CONV[conv || 'none'];
+  return '<input type="number" id="n-' + key + '" data-key="' + key + '" data-kind="conv" data-conv="' + (conv || 'none') + '" step="' + (step || 1) + '" value="' + c.to(App.S[key]) + '"> <span class="dim">' + esc(c.unit()) + '</span>';
+}
+function rng(key, min, max, suffix) { return '<input type="range" id="r-' + key + '" data-key="' + key + '" data-kind="num" min="' + min + '" max="' + max + '" value="' + App.S[key] + '"><output class="mono" data-out="' + key + '">' + App.S[key] + (suffix || '') + '</output>'; }
+// a warning limit where 0 turns the check off
+function limit(key, conv, step, dflt) {
+  const on = App.S[key] !== 0;
+  const c = CONV[conv];
+  return '<label class="sw"><input type="checkbox" id="l-' + key + '" data-limit="' + key + '" data-dflt="' + dflt + '"' + (on ? ' checked' : '') + ' aria-label="Check on"><span></span></label>' +
+    '<input type="number" id="n-' + key + '" data-key="' + key + '" data-kind="conv" data-conv="' + conv + '" step="' + (step || 1) + '" value="' + c.to(on ? App.S[key] : dflt) + '"' + (on ? '' : ' disabled') + '> <span class="dim">' + esc(c.unit()) + '</span>';
+}
+function field(label, ctl, hint, wide) {
+  return '<div class="f' + (wide ? ' wide' : '') + '"><span class="lb">' + label + '</span><div class="ctl">' + ctl + '</div>' + (hint ? '<p class="hint">' + hint + '</p>' : '') + '</div>';
+}
+
+async function setKeys(obj, quiet) {
+  const before = {};
+  for (const k of Object.keys(obj)) before[k] = App.S[k];
+  Object.assign(App.S, obj);
+  try { await App.link.request('set', { s: obj }); if (!quiet) toast('Saved'); return true; }
+  catch (e) { Object.assign(App.S, before); toast('Not saved: ' + e.message, true); render(); return false; }
+}
+
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-key][data-val]');
+  if (b) { const v = +b.dataset.val; $$('[data-key="' + b.dataset.key + '"][data-val]').forEach((x) => x.setAttribute('aria-checked', x === b)); setKeys({ [b.dataset.key]: v }).then(() => afterSet(b.dataset.key)); }
+});
+document.addEventListener('input', (e) => { const el = e.target; if (el.type === 'range' && el.dataset.key) { const o = $('[data-out="' + el.dataset.key + '"]'); if (o) o.textContent = el.value + (o.textContent.endsWith('%') ? '%' : ''); } });
+document.addEventListener('change', (e) => {
+  const el = e.target;
+  if (el.dataset.limit) {
+    const k = el.dataset.limit, n = $('#n-' + k);
+    n.disabled = !el.checked;
+    const v = el.checked ? CONV[n.dataset.conv].from(+n.value || +el.dataset.dflt) : 0;
+    setKeys({ [k]: v });
+    return;
+  }
+  if (!el.dataset.key || el.closest('[data-local]')) return;
+  const k = el.dataset.key; let v;
+  if (el.dataset.kind === 'bool') v = el.checked ? 1 : 0;
+  else if (el.dataset.kind === 'conv') { if (el.value === '') return; v = CONV[el.dataset.conv].from(+el.value); }
+  else if (el.type === 'color') v = el.value;
+  else v = +el.value;
+  setKeys({ [k]: v }).then((ok) => ok && afterSet(k));
+});
+function afterSet(k) { if (/^(unitsMetricSpeed|unitsC|unitsBar|srcOil|speedSrc|canOn|srcRpm|srcCoolant|srcVolts|srcFuel)$/.test(k)) render(); }
+
+// ===================== pages =====================
+const PAGES = [
+  ['status', 'Status'], ['sources', 'Data sources'], ['can', 'CAN bus'], ['lighting', 'Lighting'], ['warnings', 'Warnings'],
+  ['speed', 'Speed and odometer'], ['senders', 'Sender calibration'], ['obd', 'OBD reader and codes'], ['units', 'Units'], ['tools', 'Backup and tools'],
+];
+function renderNav() {
+  const nav = $('#nav');
+  if (!App.S) { nav.innerHTML = ''; nav.hidden = true; return; }
+  nav.hidden = false;
+  nav.innerHTML = PAGES.map(([k, l]) => '<button type="button" data-page="' + k + '"' + (App.page === k ? ' aria-current="page"' : '') + '>' + l + '</button>').join('');
+}
+$('#nav').addEventListener('click', (e) => { const b = e.target.closest('[data-page]'); if (b) go(b.dataset.page); });
+function go(p) { if (App.page === 'can' && p !== 'can') Sniffer.stop(); App.page = p; try { history.replaceState(null, '', '#' + p); } catch (e) {} render(); window.scrollTo(0, 0); }
+window.addEventListener('hashchange', () => { const p = location.hash.slice(1); if (App.S && PAGES.some((x) => x[0] === p) && p !== App.page) go(p); });
+
+function render() {
+  renderNav();
+  const m = $('#main');
+  if (!App.S) { m.innerHTML = pageWelcome(); return; }
+  const fn = { status: pageStatus, sources: pageSources, can: pageCan, lighting: pageLighting, warnings: pageWarnings, speed: pageSpeed, senders: pageSenders, obd: pageObd, units: pageUnits, tools: pageTools }[App.page] || pageStatus;
+  m.innerHTML = fn();
+  const after = { can: () => Sniffer.mount(), obd: () => loadDtc(), speed: () => loadOdoLog() }[App.page];
+  if (after) after();
+  live();
+}
+
+function pageWelcome() {
+  const ble = BleLink.available();
+  const framed = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+  return '<div class="welcome"><h1>Set up your gauges</h1><p class="lede">This page talks to the speedometer over Bluetooth. Every setting lives in the gauges, so once they are set up the phone can stay in your pocket.</p>' +
+    (ble ? '' : '<div class="callout warn">' + (framed ? 'Bluetooth is turned off for pages shown inside another page, like this preview. Open the page on its own to connect, or try the demo here.'
+      : 'This browser can\'t use Bluetooth from a web page. Use Chrome or Edge on Android, Windows, Mac or a Chromebook. On iPhone or iPad, open this page in the free Bluefy browser.') + '</div>') +
+    '<div class="grid2"><div class="card"><h2>Connect to the gauges</h2><ol class="steps"><li>Turn the key on.</li><li>Press <b>Connect</b> and pick <b>Barracuda</b> from the list.</li><li>The first time, type the 6-digit code shown on the speedometer.</li></ol>' +
+    '<div class="row" style="margin-top:12px"><button class="pri" id="wConnect"' + (ble ? '' : ' disabled') + '>Connect</button></div></div>' +
+    '<div class="card"><h2>No gauges yet?</h2><p style="margin:0">The demo runs a pretend set of gauges and a pretend car on its CAN bus, so you can try every page and practice finding signals with the sniffer.</p><div class="row" style="margin-top:12px"><button id="wDemo">Try the demo</button></div></div></div>' +
+    '<p class="note">Works in Chrome and Edge on Android, Windows, Mac and Chromebook. iPhone and iPad need the Bluefy browser, because Safari does not allow Bluetooth from web pages.</p></div>';
+}
+document.addEventListener('click', (e) => { if (e.target.id === 'wConnect') connectBle(); if (e.target.id === 'wDemo') connectDemo(); });
+
+// ---- status ----
+const WARN = [[0x01, 'Volts'], [0x02, 'Low fuel'], [0x04, 'Fuel empty'], [0x08, 'Hot'], [0x10, 'Oil pressure'], [0x20, 'Redline']];
+function warnList(w) { return WARN.filter(([b]) => w & b).map(([, n]) => n); }
+function pageStatus() {
+  return '<h1>Status</h1><p class="lede">Live from the gauges, twice a second.</p><div id="statusBody">' + statusBody() + '</div>';
+}
+function statusBody() {
+  const s = App.st;
+  if (!s) return '<div class="card">Waiting for the first reading…</div>';
+  const q = s.quad || {}, t = s.tach || {}, cn = s.can || {};
+  const from = { gps: 'GPS', cable: 'cable sensor', obd: 'OBD', can: 'CAN', none: 'no source' }[s.speedFrom] || s.speedFrom;
+  const srcTag = (bit) => (q.fromCan & bit) ? 'CAN' : (q.fromObd & bit) ? 'OBD' : 'sender';
+  const warns = warnList((q.warn || 0) | (t.warn || 0));
+  const pill = (on, a, b) => '<span class="pill ' + (on ? 'ok' : 'crit') + '">' + (on ? a : b) + '</span>';
+  return '<div class="big" style="margin-bottom:14px">' +
+    '<div class="tile"><b>' + U.spd(s.mph) + '</b><span>' + U.spdU() + ' <em>from ' + esc(from) + '</em></span></div>' +
+    '<div class="tile"><b>' + (t.rpm == null ? '–' : Math.round(t.rpm)) + '</b><span>rpm</span></div>' +
+    '<div class="tile"><b>' + U.tmp(q.tempF) + '</b><span>coolant ' + U.tmpU() + ' <em>' + srcTag(2) + '</em></span></div>' +
+    '<div class="tile"><b>' + (q.volts == null ? '–' : q.volts.toFixed(1)) + '</b><span>volts <em>' + srcTag(4) + '</em></span></div>' +
+    '<div class="tile"><b>' + U.prs(q.oilPsi) + '</b><span>oil ' + U.prsU() + ' <em>' + ((q.fromCan & 8) ? 'CAN' : 'sender') + '</em></span></div>' +
+    '<div class="tile"><b>' + (q.fuelPct == null ? '–' : Math.round(q.fuelPct)) + '</b><span>fuel % <em>' + srcTag(1) + '</em></span></div>' +
+    '<div class="tile"><b>' + U.dist(s.odo) + '</b><span>odometer ' + U.distU() + '</span></div>' +
+    '<div class="tile"><b>' + U.dist(s.tripShown === 'B' ? s.tripB : s.tripA) + '</b><span>trip ' + esc(s.tripShown) + '</span></div></div>' +
+    (warns.length ? '<div class="callout warn">Warning lit: ' + warns.join(', ') + '</div>' : '') +
+    (s.odoFault && s.odoFault !== 'ok' ? '<div class="callout warn">Odometer memory problem: ' + esc(s.odoFault) + '. The speedo shows ODO in amber.</div>' : '') +
+    '<div class="grid3"><div class="card"><h2>Gauges</h2><dl class="kv">' +
+    '<dt>Speedometer</dt><dd>' + pill(true, 'Connected', '') + '</dd>' +
+    '<dt>Tachometer</dt><dd>' + pill(t.online, 'Online', 'Not heard') + '</dd>' +
+    '<dt>Quad</dt><dd>' + pill(q.online, 'Online', 'Not heard') + '</dd>' +
+    '<dt>Wired link misses</dt><dd>' + (s.link ? s.link.tachMissed + ' / ' + s.link.quadMissed : '–') + '</dd>' +
+    '<dt>Settings in step</dt><dd>' + (t.settingsOk !== false && q.settingsOk !== false ? 'Yes' : 'Sending…') + '</dd></dl></div>' +
+    '<div class="card"><h2>Inputs</h2><dl class="kv">' +
+    '<dt>GPS</dt><dd>' + (s.gps && s.gps.present ? (s.gps.fix ? s.gps.sats + ' satellites' : 'No fix yet') : 'Not fitted') + '</dd>' +
+    '<dt>Cable sensor</dt><dd>' + (s.cableMph == null ? 'No pulses' : U.spd(s.cableMph, 1) + ' ' + U.spdU()) + '</dd>' +
+    '<dt>OBD reader</dt><dd>' + esc(s.obd ? s.obd.state : '–') + '</dd>' +
+    '<dt>Wired CAN</dt><dd>' + (cn.on ? (cn.receiving ? cn.kbps + ' kbit/s, ' + cn.fps + ' frames/s' : 'On, no traffic') : 'Off') + '</dd>' +
+    '<dt>Dash lights</dt><dd>' + (s.light ? (s.light.lightsOn ? 'On' : 'Off') + (s.light.night ? ', night face' : ', day face') : '–') + '</dd></dl></div>' +
+    '<div class="card"><h2>Sender wiring</h2><dl class="kv">' +
+    '<dt>Fuel sender</dt><dd>' + senderOhm(q, 'fuel', 'fuelOhm') + '</dd><dt>Oil sender</dt><dd>' + senderOhm(q, 'oil', 'oilOhm') + '</dd>' +
+    '<dt>Coolant sender</dt><dd>' + senderOhm(q, 'coolant', 'coolOhm') + '</dd><dt>Battery at quad</dt><dd>' + (q.raw && q.raw.battVolts != null ? q.raw.battVolts.toFixed(2) + ' V' : '–') + '</dd>' +
+    '<dt>Engine ground offset</dt><dd>' + (App.S.engGround ? 'Not sensed' : q.raw && q.raw.engineOffsetV != null ? (q.raw.engineOffsetV * 1000).toFixed(0) + ' mV' : '–') + '</dd></dl></div></div>' +
+    (s.cel ? '<div class="callout warn">Check engine light is on. See OBD reader and codes.</div>' : '');
+}
+function senderOhm(q, name, k) {
+  if (!q.online) return '–';
+  if ((q.senderOpen || []).includes(name)) return '<span class="critc">Open circuit</span>';
+  if ((q.senderShort || []).includes(name)) return '<span class="critc">Shorted</span>';
+  return q.raw && q.raw[k] != null ? q.raw[k].toFixed(1) + ' Ω' : '–';
+}
+
+// ===================== sender check: analog vs OBD/CAN (Ron, 2026-11-22) =====================
+// Same maths as quad/senders.c, from the raw sender values in the status.
+const Analog = {
+  fuel(ohm) { const S = App.S, e = S.fuelEmptyOhmX10 / 10, f = S.fuelFullOhmX10 / 10; if (ohm == null || e === f) return null; return Math.max(0, Math.min(1, (e - ohm) / (e - f))) * 100; },
+  coolant(ohm) { const S = App.S, ra = S.coolOhmAX10 / 10, rb = S.coolOhmBX10 / 10, ta = (S.coolTempAF - 32) * 5 / 9 + 273.15, tb = (S.coolTempBF - 32) * 5 / 9 + 273.15;
+    if (ohm == null || ohm <= 0 || ra <= 0 || rb <= 0 || ra === rb || ta === tb) return null; const beta = Math.log(ra / rb) / (1 / ta - 1 / tb); return (1 / (1 / ta + Math.log(ohm / ra) / beta) - 273.15) * 9 / 5 + 32; },
+  volts(v) { return v == null ? null : v + App.S.voltsTrimCv / 100; },
+};
+const Compare = {
+  hist: { coolant: [], volts: [], fuel: [] },
+  // the car's value: the needle when it came from OBD or CAN, else the OBD reading itself
+  net(s, k) { const q = s.quad || {}, bit = { fuel: 1, coolant: 2, volts: 4 }[k], qv = { fuel: q.fuelPct, coolant: q.tempF, volts: q.volts }[k];
+    if (((q.fromObd | q.fromCan) & bit) && qv != null) return [qv, (q.fromCan & bit) ? 'CAN' : 'OBD'];
+    const o = s.obd || {}; const ov = { fuel: o.fuelPct, coolant: o.coolantF, volts: o.volts }[k]; return ov != null && o.state === 'up' ? [ov, 'OBD'] : [null, null]; },
+  onStatus(s) {
+    const q = s.quad || {}; if (!q.online || !q.running || !q.raw) return;
+    const an = { coolant: Analog.coolant(q.raw.coolOhm), volts: Analog.volts(q.raw.battVolts), fuel: Analog.fuel(q.raw.fuelOhm) };
+    for (const k of Object.keys(this.hist)) {
+      const [nv, src] = this.net(s, k); const h = this.hist[k];
+      if (nv == null || an[k] == null) continue;
+      h.push([nv, an[k], src, q.raw.coolOhm]); if (h.length > 120) h.shift();
+    }
+  },
+  result(k) { const h = this.hist[k]; if (h.length < 40) return null; const n = h.length;
+    const net = h.reduce((a, x) => a + x[0], 0) / n, an = h.reduce((a, x) => a + x[1], 0) / n; return { net, an, diff: an - net, src: h[n - 1][2], n, ohm: h[n - 1][3] }; },
+};
+function compareCard() {
+  const row = (k, name, fmt, tol, fix) => { const r = Compare.result(k);
+    if (!r) return '<div class="sigrow"><b>' + name + '</b><div class="rs dim">Needs the engine running with both a sender and OBD or CAN (' + Compare.hist[k].length + ' of 40 readings)</div><span></span><span></span></div>';
+    const bad = Math.abs(r.diff) > tol;
+    return '<div class="sigrow"><b>' + name + '</b><div class="rs">Sender ' + fmt(r.an) + ', ' + r.src + ' ' + fmt(r.net) + ' <span class="pill ' + (bad ? 'warn' : 'ok') + '">' + (bad ? 'Off by ' + fmt(Math.abs(r.diff), true) : 'Agrees') + '</span></div><span></span><span class="row">' + (bad && fix ? fix(r) : '') + '</span></div>'; };
+  const t = (v, d) => d ? (U.c() ? (v * 5 / 9).toFixed(0) : v.toFixed(0)) + ' ' + U.tmpU() : U.tmp(v) + ' ' + U.tmpU();
+  const r = Compare.result('coolant');
+  const gndHint = App.S.engGround && r && Math.abs(r.diff) > 4 ? '<div class="callout warn">The coolant sender reads ' + t(Math.abs(r.diff), true) + ' off the car while it reads against dash ground. A steady offset like this usually means the engine and body grounds differ: wire the engine ground (pin 10) to the block and set Engine ground to sensed.</div>' : '';
+  return '<div class="card"><h2>Sender check</h2><p style="margin-top:0">With the engine running, the gauges compare each sender with the car\'s own reading over the last minute.</p>' + gndHint +
+    row('coolant', 'Coolant', t, 4, (x) => '<button class="sm" data-act="fixCool">Match the car (' + (x.net >= 180 ? 'hot' : 'cold') + ' point)</button>') +
+    row('volts', 'Volts', (v) => v.toFixed(2) + ' V', 0.15, () => '<button class="sm" data-act="fixVolts">Trim to match the car</button>') +
+    row('fuel', 'Fuel', (v) => v.toFixed(0) + ' %', 6, null) +
+    '<p class="note">Oil pressure is not on OBD, so it can only be checked against a mechanical gauge.</p></div>';
+}
+
+// live parts of the open page
+function live() {
+  const s = App.st; if (!s) return;
+  if (App.page === 'status') { const b = $('#statusBody'); if (b) b.innerHTML = statusBody(); }
+  $$('[data-live]').forEach((el) => { const f = LIVE[el.dataset.live]; if (f) el.innerHTML = f(s); });
+}
+const LIVE = {
+  canState: (s) => { const c = s.can || {}; if (!App.S.canOn) return '<span class="pill">Off</span>';
+    if (!c.on) return '<span class="pill warn">Starting</span>';
+    if (c.receiving) return '<span class="pill ok">' + c.kbps + ' kbit/s</span> <span class="dim">' + c.fps + ' frames/s, ' + c.ids + ' IDs' + (c.tableFull ? ' (list full)' : '') + '</span>';
+    return '<span class="pill ' + (c.errors ? 'crit' : 'warn') + '">' + (c.errors ? 'Bus errors' : 'No traffic') + '</span> <span class="dim">' + (App.S.canRate === 0 ? 'Searching for the speed…' : c.errors ? 'Check the bit rate and the CAN H / L wires.' : 'Is the ignition on?') + '</span>'; },
+  compare: () => compareCard(),
+  rawFuel: (s) => s.quad && s.quad.raw && s.quad.raw.fuelOhm != null ? s.quad.raw.fuelOhm.toFixed(1) + ' Ω' : '–',
+  rawOil: (s) => s.quad && s.quad.raw && s.quad.raw.oilOhm != null ? s.quad.raw.oilOhm.toFixed(1) + ' Ω' : '–',
+  rawCool: (s) => s.quad && s.quad.raw && s.quad.raw.coolOhm != null ? s.quad.raw.coolOhm.toFixed(1) + ' Ω' : '–',
+  rawBatt: (s) => s.quad && s.quad.raw && s.quad.raw.battVolts != null ? (s.quad.raw.battVolts + App.S.voltsTrimCv / 100).toFixed(2) + ' V' : '–',
+  cal: (s) => { const c = s.cal || {}; if (c.mode === 'gpsMile') return 'Driving the GPS mile: ' + (c.gpsMiles || 0).toFixed(2) + ' of 1.00 mi, ' + c.pulses + ' pulses' + (c.paused ? ' (waiting for GPS)' : '');
+    if (c.mode === 'markers') return 'Counting: ' + c.pulses + ' pulses since the first marker'; return c.lastResult ? 'Last result: ' + c.lastResult + ' pulses per mile' : 'Not running'; },
+  calBtns: (s) => { const c = (s.cal || {}).mode; return c === 'markers' ? '<input type="number" id="calMiles" step="0.1" min="0.1" value="1.0"> <span class="dim">miles between markers</span> <button class="pri" data-act="calMarkersStop">Stop at this marker</button> <button data-act="calCancel">Cancel</button>'
+    : c === 'gpsMile' ? '<button data-act="calCancel">Cancel</button>' : '<button data-act="calGpsStart">Drive one GPS mile</button> <button data-act="calMarkersStart">Start at a mile marker</button>'; },
+  speedNow: (s) => { const f = { gps: 'GPS', cable: 'cable sensor', obd: 'OBD', can: 'CAN', none: 'no source right now' }[s.speedFrom]; return U.spd(s.mph, 1) + ' ' + U.spdU() + ' from ' + f; },
+  srcNow: (s) => { const q = s.quad || {}, t = s.tach || {}, src = (b) => (q.fromCan & b) ? 'CAN' : (q.fromObd & b) ? 'OBD' : 'sender';
+    return 'Right now: RPM ' + (t.rpm == null ? '–' : Math.round(t.rpm)) + ', coolant from ' + src(2) + ', volts from ' + src(4) + ', fuel from ' + src(1) + ', oil from ' + ((q.fromCan & 8) ? 'CAN' : 'sender') + '.'; },
+};
+</script>
+<script>
+'use strict';
+// ---- data sources ----
+const NET_OPTS = [[0, 'OBD reader'], [2, 'OBD, sender as backup'], [3, 'Wired CAN'], [4, 'Wired CAN, sender as backup'], [1, 'Sender only']];
+function pageSources() {
+  const S = App.S;
+  const canNote = [S.srcRpm, S.srcCoolant, S.srcVolts, S.srcFuel, S.srcOil].some((v) => v >= 3) || S.speedSrc >= 5;
+  const missing = SIGS.filter((g) => { const v = S[g.src]; const can = g.k === 'speed' ? v >= 5 : v >= 3; return can && !(S.canRules.find((r) => r.sig === g.k) || {}).on; });
+  return '<h1>Data sources</h1><p class="lede">Pick where each gauge gets its reading. Mix and match: for example RPM and coolant from the car\'s CAN bus, fuel and oil from the original senders.</p>' +
+    (canNote && !S.canOn ? '<div class="callout warn">Some readings use wired CAN, but CAN is turned off. Turn it on under <a href="#can">CAN bus</a>.</div>' : '') +
+    (missing.length ? '<div class="callout warn">No CAN rule yet for ' + missing.map((m) => m.name.toLowerCase()).join(', ') + '. Make one with the sniffer under <a href="#can">CAN bus</a>; until then that gauge falls back as set below.</div>' : '') +
+    '<div class="card"><h2>Speedometer</h2>' +
+    field('Speed', sel('speedSrc', [[0, 'GPS'], [1, 'Cable sensor'], [2, 'GPS, cable sensor as backup'], [3, 'OBD reader'], [4, 'OBD, GPS as backup'], [5, 'Wired CAN'], [6, 'Wired CAN, GPS as backup']]),
+      'The cable sensor is the optional sender on the speedo cable. Calibrate it under Speed and odometer.') + '</div>' +
+    '<div class="card"><h2>Tachometer</h2>' + field('RPM', sel('srcRpm', NET_OPTS.map(([v, l]) => [v, l.replace('sender', 'coil wire').replace('Sender', 'Coil wire')]))) +
+    field('Coil-wire pulses', sel('tachPulsesPerRevX2', [[4, '4 cylinder'], [6, '6 cylinder'], [8, '8 cylinder'], [2, '1 pulse per turn'], [1, '1 pulse every 2 turns']]), 'Only used when RPM comes from the coil wire.') + '</div>' +
+    '<div class="card"><h2>Quad gauge</h2>' + field('Coolant', sel('srcCoolant', NET_OPTS)) + field('Volts', sel('srcVolts', NET_OPTS), 'Sender here means the battery wire at the quad.') +
+    field('Fuel', sel('srcFuel', NET_OPTS), 'Many cars do not report fuel level over OBD.') +
+    field('Oil pressure', sel('srcOil', [[1, 'Sender only'], [3, 'Wired CAN'], [4, 'Wired CAN, sender as backup']]), 'OBD has no oil pressure, so it is not offered.') + '</div>' +
+    '<p class="note" data-live="srcNow"></p>';
+}
+
+// ---- lighting ----
+function pageLighting() {
+  return '<h1>Lighting</h1><p class="lede">Day face for sunlight, your own night lighting when the dash lights are on.</p><div class="card"><h2>When to switch</h2>' +
+    field('Face', seg('faceMode', [[0, 'Auto'], [1, 'Always day'], [2, 'Always night']]), 'Auto follows the dash-light wire, or sunset and sunrise from GPS when the wire is not connected.') +
+    field('Dash-light wire connected', tog('dashWire'), 'Turn off for "sunset only": Auto then uses GPS sunset and sunrise.') + '</div>' +
+    '<div class="card"><h2>Night look</h2>' + field('Style', seg('nightStyle', [[1, 'Vintage edge-lit'], [0, 'Modern']])) +
+    field('Light color', '<input type="color" id="c-lightColor" data-key="lightColor" value="' + esc(App.S.lightColor) + '">', 'The bulb color for vintage, the ink color for modern.') +
+    field('Edge glow', rng('glow', 0, 100, '%')) + field('Fade toward center', rng('fade', 0, 100, '%')) + '</div>' +
+    '<div class="card"><h2>Brightness</h2>' + field('Day face', seg('dayStyle', [[0, 'Sunlight white'], [1, 'My lighting']])) +
+    field('Day brightness', rng('dayBright', 5, 100, '%')) + field('Night brightness', rng('nightBright', 5, 100, '%')) +
+    field('Follow the dimmer knob at night', tog('followDimmer')) + '</div>';
+}
+
+// ---- warnings ----
+function pageWarnings() {
+  return '<h1>Warnings and redline</h1><p class="lede">A reading has to stay past its limit for a second before it flashes. Oil and volts wait until the engine is running.</p><div class="card"><h2>Limits</h2>' +
+    field('Redline', num('redline', 'none', 100) , 'The tach\'s red band starts here and the needle flashes past it.') +
+    field('Engine counts as running above', num('rpmRunning', 'none', 50)) +
+    field('Oil pressure low', limit('oilLowPsi', 'psi', 1, 15)) + field('Coolant hot', limit('tempHighF', 'temp', 1, 230)) +
+    field('Volts low', limit('voltsLowCv', 'cv', 0.1, 1150)) + field('Volts high', limit('voltsHighCv', 'cv', 0.1, 1500)) +
+    field('Fuel low (yellow)', limit('fuelLowPct', 'none', 1, 12) + ' <span class="dim">%</span>') +
+    field('Fuel empty (red)', num('fuelEmptyPct', 'none', 1) + ' <span class="dim">%</span>') + '</div>' +
+    '<div class="card"><h2>Check the lamps</h2><div class="row"><button data-act="sweep">Sweep the needles</button><button data-act="testWarnOn">Light every warning</button><button data-act="testWarnOff">Warnings back to normal</button></div></div>';
+}
+
+// ---- speed and odometer ----
+function pageSpeed() {
+  return '<h1>Speed and odometer</h1><p class="lede">Speed now: <b data-live="speedNow">–</b>. Pick the speed source under <a href="#sources">Data sources</a>.</p>' +
+    '<div class="card"><h2>Cable sensor calibration</h2><p style="margin-top:0">The sensor learns its pulses per mile, so tire size and axle ratio never need a gear change.</p>' +
+    field('Pulses per mile', num('pulsesPerMile', 'none', 1), 'Set by the calibration below, or type a known value.') +
+    '<div class="f wide"><span class="lb" data-live="cal">–</span><div class="ctl" data-live="calBtns"></div><p class="hint">GPS mile: drive one mile with a GPS fix. Mile markers: press Start at one marker, Stop at the next, and type the distance.</p></div>' +
+    field('Ignore speeds below', num('creepMphX10', 'mph10', 0.1), 'So GPS drift while parked never adds miles.') + '</div>' +
+    '<div class="card"><h2>Trips</h2><div class="row"><button data-act="tripZeroA">Zero trip A</button><button data-act="tripZeroB">Zero trip B</button><button data-act="tripShowA">Show trip A</button><button data-act="tripShowB">Show trip B</button></div></div>' +
+    '<div class="card"><h2>Set the odometer</h2><p style="margin-top:0">Use this once at install so the gauge matches the car\'s real miles. Every change is kept in a log that can\'t be erased.</p>' +
+    '<div class="row"><input type="number" id="odoNew" step="0.1" min="0" max="999999" placeholder="miles"> <span class="dim">miles</span><button data-act="odoAsk">Set odometer</button></div>' +
+    '<div class="confirm" id="odoConfirm"><span>Set the odometer to <b id="odoTo"></b> miles? This is logged.</span><button class="pri" data-act="odoSet">Yes, set it</button><button data-act="odoNo">Cancel</button></div>' +
+    '<div id="odoLog" style="margin-top:12px"></div></div>';
+}
+async function loadOdoLog() {
+  try { const r = await App.link.request('odoLog'); const el = $('#odoLog'); if (!el) return;
+    el.innerHTML = r.changes && r.changes.length ? '<div class="tw"><table><thead><tr><th>#</th><th>From</th><th>To</th><th>When</th></tr></thead><tbody>' +
+      r.changes.map((c) => '<tr><td class="n">' + c.n + '</td><td class="n">' + (c.from == null ? 'lost' : c.from.toFixed(1)) + '</td><td class="n">' + c.to.toFixed(1) + '</td><td>' + (c.time ? new Date(c.time * 1000).toLocaleString() : 'unknown') + '</td></tr>').join('') + '</tbody></table></div>'
+      : '<p class="note">No changes logged.</p>'; } catch (e) {}
+}
+
+// ---- senders ----
+function pageSenders() {
+  return '<h1>Sender calibration</h1><p class="lede">Record each point with the car in that state; the gauge reads the sender for you. Only needed for readings that come from the original senders.</p>' +
+    '<div data-live="compare"></div><div class="card"><h2>Engine ground</h2>' + field('Oil and coolant senders read against', seg('engGround', [[0, 'Engine block (sensed)'], [1, 'Dash ground']]),
+      'Sensed: the engine ground wire (pin 10 of the quad plug) goes to the block, so a bad ground between engine and body can\'t throw the readings off. Dash ground: leave that wire off; this only reads right if the engine and body grounds are solid.') + '</div>' +
+    '<div class="card"><h2>Fuel <span class="dim mono" data-live="rawFuel"></span></h2>' + field('Empty tank', num('fuelEmptyOhmX10', 'x10', 0.1) + ' <button class="sm" data-act="rec" data-pt="fuelEmpty">Record now</button>') +
+    field('Full tank', num('fuelFullOhmX10', 'x10', 0.1) + ' <button class="sm" data-act="rec" data-pt="fuelFull">Record now</button>', 'Straight line between empty and full.') + '</div>' +
+    '<div class="card"><h2>Oil pressure <span class="dim mono" data-live="rawOil"></span></h2>' + field('At 0 psi (engine off)', num('oilOhm0X10', 'x10', 0.1) + ' <button class="sm" data-act="rec" data-pt="oil0">Record now</button>') +
+    field('At 80 psi', num('oilOhm80X10', 'x10', 0.1) + ' <button class="sm" data-act="rec" data-pt="oil80">Record now</button>', 'Use a mechanical gauge to know when you are at 80 psi, or type the sender\'s published value.') + '</div>' +
+    '<div class="card"><h2>Coolant <span class="dim mono" data-live="rawCool"></span></h2>' +
+    field('Point A', num('coolOhmAX10', 'x10', 0.1) + ' at ' + num('coolTempAF', 'temp') + ' <button class="sm" data-act="recCool" data-pt="coolA">Record now</button>') +
+    field('Point B', num('coolOhmBX10', 'x10', 0.1) + ' at ' + num('coolTempBF', 'temp') + ' <button class="sm" data-act="recCool" data-pt="coolB">Record now</button>',
+      'Record one point cold and one hot. Type the thermometer reading first, then press Record now.') + '</div>' +
+    '<div class="card"><h2>Battery volts <span class="dim mono" data-live="rawBatt"></span></h2>' + field('Trim to match a meter', num('voltsTrimCv', 'cv', 0.01)) + '</div>';
+}
+
+// ---- OBD ----
+function pageObd() {
+  const S = App.S;
+  return '<h1>OBD reader and codes</h1><p class="lede">A Bluetooth LE OBD reader (for example the Vgate iCar Pro BLE) plugged into the car\'s OBD port. Classic Bluetooth readers can\'t pair.</p>' +
+    '<div class="card"><h2>Reader</h2><p style="margin-top:0">' + (S.obdPaired ? 'Paired with <span class="mono">' + esc(S.obdAddr || '') + '</span>, ' + esc(App.st && App.st.obd ? App.st.obd.state : '') + '.' : 'No reader paired.') + '</p>' +
+    '<div class="row"><button data-act="obdScan">Find readers</button>' + (S.obdPaired ? '<button class="danger" data-act="obdForget">Forget reader</button>' : '') + '</div><div id="scanList" style="margin-top:10px"></div></div>' +
+    '<div class="card"><h2>Trouble codes <button class="sm" data-act="dtcRefresh">Refresh</button></h2><div id="dtcList"><p class="note">Reading…</p></div>' +
+    '<p class="note">The check engine light on the speedo lights for any stored code you have not marked Ignore. Mark codes that are always there after an engine swap.</p>' +
+    '<div class="row" style="margin-top:10px"><button class="danger" data-act="dtcAsk">Clear codes in the car</button></div>' +
+    '<div class="confirm" id="dtcConfirm"><span>Clear all codes? This also resets the car\'s readiness monitors.</span><button class="pri" data-act="dtcClear">Yes, clear them</button><button data-act="dtcNo">Cancel</button></div></div>';
+}
+async function loadDtc() {
+  try { const r = await App.link.request('dtc'); showDtc(r); } catch (e) { const el = $('#dtcList'); if (el) el.innerHTML = '<p class="note">' + esc(e.message) + '</p>'; }
+}
+function showDtc(r) {
+  const el = $('#dtcList'); if (!el) return;
+  const rows = [].concat((r.stored || []).map((c) => [c, 'Stored']), (r.pending || []).map((c) => [c, 'Pending']));
+  el.innerHTML = !r.valid ? '<p class="note">No answer from the car yet.</p>' : !rows.length ? '<p class="note">No codes.</p>' :
+    '<div class="tw"><table><thead><tr><th>Code</th><th>Meaning</th><th>Kind</th><th>Ignore</th></tr></thead><tbody>' + rows.map(([c, k]) =>
+      '<tr><td class="mono">' + esc(c.code) + '</td><td>' + esc(c.desc || '') + '</td><td>' + k + '</td><td><label class="sw"><input type="checkbox" data-local="1" data-ign="' + esc(c.code) + '"' + (c.ignored ? ' checked' : '') + ' aria-label="Ignore ' + esc(c.code) + '"><span></span></label></td></tr>').join('') + '</tbody></table></div>';
+}
+function showScan(r) {
+  const el = $('#scanList'); if (!el) return;
+  const d = (r.devices || []).slice().sort((a, b) => (b.likelyObd - a.likelyObd) || (b.rssi - a.rssi));
+  el.innerHTML = (r.running ? '<p class="note">Looking…</p>' : '') + (d.length ? '<div class="tw"><table><tbody>' + d.map((x) => '<tr><td>' + esc(x.name || '(no name)') + (x.likelyObd ? ' <span class="pill info">OBD</span>' : '') + '</td><td class="mono">' + esc(x.addr) + '</td><td class="n">' + x.rssi + ' dBm</td><td><button class="sm" data-act="obdPair" data-addr="' + esc(x.addr) + '" data-at="' + x.addrType + '">Pair</button></td></tr>').join('') + '</tbody></table></div>' : r.running ? '' : '<p class="note">Nothing found. Is the reader plugged in and the key on?</p>');
+}
+
+// ---- units ----
+function pageUnits() {
+  return '<h1>Units</h1><p class="lede">How this app shows readings. The gauge faces stay like the originals.</p><div class="card"><h2>Show</h2>' +
+    field('Speed and distance', seg('unitsMetricSpeed', [[0, 'mph, miles'], [1, 'km/h, km']])) + field('Temperature', seg('unitsC', [[0, '°F'], [1, '°C']])) +
+    field('Oil pressure', seg('unitsBar', [[0, 'psi'], [1, 'bar']])) + '</div>';
+}
+
+// ---- backup and tools ----
+function pageTools() {
+  const h = App.hello || {};
+  return '<h1>Backup and tools</h1><p class="lede">Save every setting to a file, or load one, for example to set up a second car the same way.</p>' +
+    '<div class="card"><h2>Settings file</h2><div class="row"><button class="pri" data-act="exportAll">Save settings file</button><button data-act="importPick">Load settings file</button></div>' +
+    '<p class="note">The file holds every setting and the CAN rules. It does not hold the odometer, trips or the paired OBD reader.</p><div id="exportBox"></div></div>' +
+    '<div class="card"><h2>Bench tools</h2><div class="row"><button data-act="sweep">Sweep the needles</button><button data-act="benchOn">Bench demo on</button><button data-act="benchOff">Bench demo off</button></div><p class="note">Bench demo moves every needle through its range with made-up values, for testing on the bench with no car.</p></div>' +
+    '<div class="card"><h2>About</h2><dl class="kv"><dt>Connected to</dt><dd>' + esc(App.link.name || '') + '</dd><dt>Speedometer firmware</dt><dd>' + esc(h.fw || '–') + ' (' + esc(h.build || '') + ')</dd>' +
+    '<dt>Tachometer firmware</dt><dd>' + esc(App.st && App.st.tach && App.st.tach.fw || '–') + '</dd><dt>Quad firmware</dt><dd>' + esc(App.st && App.st.quad && App.st.quad.fw || '–') + '</dd><dt>App protocol</dt><dd>' + esc(h.protocol || '–') + '</dd></dl></div>' +
+    '<div class="card"><h2>Reset</h2><div class="row"><button class="danger" data-act="resetAsk">Factory reset settings</button><button class="danger" data-act="forgetAsk">Forget paired phones</button></div>' +
+    '<div class="confirm" id="resetConfirm"><span>Put every setting back to the factory values? The odometer and its log are kept.</span><button class="pri" data-act="factoryReset">Yes, reset</button><button data-act="resetNo">Cancel</button></div>' +
+    '<div class="confirm" id="forgetConfirm"><span>Forget every paired phone, this one too? You will need the code on the speedo to pair again.</span><button class="pri" data-act="forgetPhones">Yes, forget them</button><button data-act="forgetNo">Cancel</button></div></div>';
+}
+function settingsForFile() {
+  const s = JSON.parse(JSON.stringify(App.S)); READ_ONLY_KEYS.forEach((k) => delete s[k]);
+  return { barracudaDashSettings: 1, saved: new Date().toISOString(), settings: s, canLabels: store.get('canLabels', {}) };
+}
+function offerFile(name, text, mime) {
+  const box = $('#exportBox') || $('#ruleExportBox');
+  try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: mime || 'application/json' })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); } catch (e) {}
+  if (box) box.innerHTML = '<p class="note">If no file was saved, copy the text below and keep it in a note or a .json file.</p><textarea id="exportText" readonly>' + esc(text) + '</textarea><div class="row"><button class="sm" data-act="copyExport">Copy</button></div>';
+}
+// send a whole settings object in requests the speedo can take (one line up to 1023 bytes)
+async function applySettingsFile(s) {
+  const plain = {}; const rules = s.canRules || [];
+  for (const [k, v] of Object.entries(s)) if (k !== 'canRules' && !READ_ONLY_KEYS.includes(k) && (k in FIELDS || k === 'lightColor')) plain[k] = v;
+  await App.link.request('set', { s: plain });
+  for (const r of rules) await App.link.request('set', { s: { canRules: [r] } });
+  const got = await App.link.request('get'); App.S = got.s;
+}
+</script>
+<script>
+'use strict';
+// ===================== CAN bus page and sniffer =====================
+function pageCan() {
+  const S = App.S;
+  return '<h1>CAN bus</h1><p class="lede">Read RPM, speed, temperature and more straight off the car\'s wired CAN bus. Use the sniffer to find which message carries each reading, then save it as a rule. The rules are stored in the gauges.</p>' +
+    '<div class="card"><h2>Wired CAN <span data-live="canState"></span></h2>' +
+    field('Listen to CAN', tog('canOn'), 'The quad listens only. It never sends or answers on the car\'s bus, so it can\'t upset the car.') +
+    field('Bit rate', sel('canRate', [[0, 'Auto'], [3, '500 kbit/s (most cars)'], [2, '250 kbit/s'], [1, '125 kbit/s'], [4, '1 Mbit/s']]), 'Auto tries each rate until messages come through.') +
+    '<p class="note">Wiring: the 3-pin CAN plug on the quad is H, L and ground. On most cars from 2008 on, CAN H and L are pins 6 and 14 of the OBD port.</p></div>' +
+    '<div class="card"><h2>Readings from CAN <span class="row"><button class="sm" data-act="rulesExport">Save rules file</button><button class="sm" data-act="rulesImport">Load rules file</button></span></h2><div id="ruleRows">' + ruleRows() + '</div><div id="ruleExportBox"></div></div>' +
+    '<div class="card"><h2>Sniffer <span class="row" id="snBar"></span></h2>' +
+    (S.canOn ? '' : '<div class="callout">Turn on <b>Listen to CAN</b> above to start the sniffer.</div>') +
+    '<div class="row" style="margin-bottom:10px"><input type="text" id="snFilter" data-local="1" placeholder="Filter by ID, e.g. 3E9 or 3E" style="width:220px" value="' + esc(Sniffer.filter) + '">' +
+    '<label class="row" style="gap:6px"><span class="sw"><input type="checkbox" id="snOnlyChg" data-local="1"' + (Sniffer.onlyChg ? ' checked' : '') + '><span></span></span>Only changing</label>' +
+    '<span class="dim" id="snBg"></span></div>' +
+    '<div class="tw" style="max-height:440px"><table class="sniff"><thead><tr><th>ID</th><th>Name</th><th>Bytes 0 to 7</th><th style="text-align:right">Per s</th><th style="text-align:right">Count</th></tr></thead><tbody id="snBody"></tbody></table></div>' +
+    '<p class="note">Bytes light up when they change. To find a reading: press <b>Learn background</b> while you change nothing, then do one thing (rev the engine, turn on the lights) and switch on <b>Only changing</b>. Click a row to look at its bits and make a rule.</p></div>' +
+    '<div id="snDetail"></div>';
+}
+function ruleSummary(r) {
+  if (!r || r.id == null || (!r.on && !r.id && !r.start)) return '<span class="dim">No rule</span>';
+  return '<span class="mono">' + idText(r.id, r.ext) + '</span> <span class="dim">bit ' + r.start + ', ' + r.len + ' bits, ' + (r.be ? 'big' : 'little') + '-endian' + (r.signed ? ', signed' : '') +
+    ', ×' + +r.scale.toPrecision(6) + (r.offset ? (r.offset > 0 ? ' + ' : ' − ') + Math.abs(r.offset) : '') + (r.mux ? ', when byte ' + r.mux.byte + ' = ' + hex2(r.mux.value) : '') + '</span>';
+}
+function sigInUse(sig) { const S = App.S; return sig.k === 'speed' ? S.speedSrc >= 5 : S[sig.src] >= 3; }
+function ruleRows() {
+  return SIGS.map((g) => {
+    const r = App.S.canRules.find((x) => x.sig === g.k) || {};
+    const use = sigInUse(g);
+    return '<div class="sigrow"><b>' + g.name + '</b><div class="rs">' + ruleSummary(r) + (r.on ? '' : (r.id || r.start) ? ' <span class="pill">Off</span>' : '') +
+      (r.on && !use ? ' <span class="pill warn">Gauge not set to CAN</span>' : '') + '</div><span class="mono" data-sigval="' + g.k + '">–</span>' +
+      '<span class="row">' + (r.on ? '<button class="sm" data-act="ruleEdit" data-sig="' + g.k + '">Open</button><button class="sm" data-act="ruleOff" data-sig="' + g.k + '">Turn off</button>' : (r.id || r.start) ? '<button class="sm" data-act="ruleOn" data-sig="' + g.k + '">Turn on</button>' : '') + '</span></div>';
+  }).join('');
+}
+
+const Sniffer = {
+  frames: new Map(), running: false, filter: '', onlyChg: false, sel: null, bgUntil: 0, bgEnd: 0, rec: [], timer: null, lastDraw: 0,
+  labels: store.get('canLabels', {}), editor: null, hist: [],
+  key(id, ext) { return (ext ? 'x' : 's') + id; },
+  mount() {
+    this.drawBar(); this.draw(true); this.drawDetail();
+    $('#snFilter').addEventListener('input', (e) => { this.filter = e.target.value.trim().toUpperCase(); this.draw(true); });
+    $('#snOnlyChg').addEventListener('change', (e) => { this.onlyChg = e.target.checked; this.draw(true); });
+    clearInterval(this.timer); this.timer = setInterval(() => { if (App.page === 'can') { this.draw(); this.drawLive(); } }, 250);
+  },
+  drawBar() {
+    const b = $('#snBar'); if (!b) return;
+    b.innerHTML = this.running ? '<button class="sm" data-act="snStop">Pause</button>' : '<button class="sm pri" data-act="snStart"' + (App.S.canOn ? '' : ' disabled') + '>Start</button>';
+    b.innerHTML += '<button class="sm" data-act="snLearn"' + (this.running ? '' : ' disabled') + '>Learn background</button><button class="sm" data-act="snClear">Clear</button><button class="sm" data-act="snSave"' + (this.rec.length ? '' : ' disabled') + '>Save capture</button>';
+  },
+  async start() {
+    try { await App.link.request('canSniff', { on: true }); this.running = true; this.t0 = this.t0 || performance.now(); if (this.sel) this.sendFocus(); }
+    catch (e) { toast(e.message, true); }
+    this.drawBar();
+  },
+  async stop() {
+    clearInterval(this.timer);
+    if (!this.running) return;
+    this.running = false;
+    try { await App.link.request('canSniff', { on: false }); } catch (e) {}
+    this.drawBar();
+  },
+  sendFocus() { if (!this.running) return; const f = this.frames.get(this.sel); App.link.request('canSniff', f ? { on: true, focus: f.id, ext: !!f.ext } : { on: true }).catch(() => {}); },
+  learn() { this.bgUntil = performance.now() + 5000; for (const f of this.frames.values()) { f.bg = 0; f.bgNew = false; } this.bgEnd = 0; toast('Learning for 5 seconds: change nothing'); },
+  clear() { this.frames.clear(); this.rec = []; this.bgEnd = 0; this.t0 = performance.now(); this.draw(true); this.drawBar(); },
+  onFrames(list) {
+    const now = performance.now();
+    const learning = now < this.bgUntil;
+    if (!learning && this.bgUntil && !this.bgEnd) { this.bgEnd = this.bgUntil; }
+    for (const [id, ext, dlc, hex, count, changed] of list) {
+      const k = this.key(id, ext), data = hexToBytes(hex);
+      let f = this.frames.get(k);
+      if (!f) { f = { id, ext: !!ext, dlc, data, count, t: now, rate: 0, byteT: new Array(8).fill(0), byteN: new Array(8).fill(0), bitT: new Array(64).fill(0), bg: 0, first: now, bgNew: !!this.bgEnd }; this.frames.set(k, f); }
+      else {
+        let ch = changed;
+        for (let i = 0; i < 8; i++) if ((f.data[i] || 0) !== (data[i] || 0)) ch |= 1 << i;
+        for (let i = 0; i < 8; i++) if (ch & (1 << i)) { f.byteT[i] = now; f.byteN[i]++; if (learning) f.bg |= 1 << i;
+          const x = (f.data[i] || 0) ^ (data[i] || 0); for (let b = 0; b < 8; b++) if (x & (1 << b)) f.bitT[i * 8 + b] = now; }
+        const dt = (now - f.t) / 1000, dc = (count - f.count + 65536) % 65536;
+        if (dt > 0.05) { const r = dc / dt; f.rate = f.rate ? f.rate * 0.6 + r * 0.4 : r; f.t = now; f.count = count; }
+        f.data = data; f.dlc = dlc;
+      }
+      if (this.rec.length < 50000) this.rec.push([((now - (this.t0 || now)) / 1000).toFixed(3), idText(id, ext), ext ? 1 : 0, dlc, hex.toUpperCase()]);
+      if (k === this.sel) { this.hist.push([now, data]); if (this.hist.length > 900) this.hist.shift(); }
+    }
+    if (this.rec.length === 1) this.drawBar();
+  },
+  visible() {
+    const now = performance.now();
+    return Array.from(this.frames.entries()).filter(([k, f]) => {
+      if (this.filter && !idText(f.id, f.ext).includes(this.filter) && !(this.labels[k] || '').toUpperCase().includes(this.filter)) return false;
+      if (this.onlyChg) {
+        const since = this.bgEnd || 0, mask = this.bgEnd ? f.bg : 0;
+        const recent = f.byteT.some((t, i) => !(mask & (1 << i)) && t > since && now - t < (this.bgEnd ? 1e12 : 3000));
+        if (!recent && !(this.bgEnd && f.bgNew)) return false;
+      }
+      return true;
+    }).sort((a, b) => (a[1].ext - b[1].ext) || (a[1].id - b[1].id));
+  },
+  draw(force) {
+    const body = $('#snBody'); if (!body) return;
+    const now = performance.now();
+    if (!force && now - this.lastDraw < 240) return; this.lastDraw = now;
+    const learning = now < this.bgUntil;
+    const bgInfo = $('#snBg'); if (bgInfo) bgInfo.textContent = learning ? 'Learning background… ' + Math.ceil((this.bgUntil - now) / 1000) + ' s' : this.bgEnd ? 'Background learned: busy bytes are dimmed' : '';
+    const rows = this.visible();
+    if (!rows.length) { body.innerHTML = '<tr><td colspan="5" class="dim">' + (this.running ? (this.frames.size ? 'Nothing matches the filter.' : 'Waiting for messages…') : 'Press Start to list the messages on the bus.') + '</td></tr>'; return; }
+    body.innerHTML = rows.map(([k, f]) => {
+      let b = '';
+      for (let i = 0; i < 8; i++) {
+        if (i >= f.dlc) { b += '<i class="na">··</i>'; continue; }
+        const busy = this.bgEnd && (f.bg & (1 << i));
+        const c = now - f.byteT[i] < 900 && f.byteT[i] > 0 && !busy;
+        b += '<i class="' + (c ? 'c' : busy ? 'quiet' : '') + '">' + hex2(f.data[i]) + '</i>';
+      }
+      return '<tr data-k="' + k + '"' + (k === this.sel ? ' class="sel"' : '') + '><td class="idc">' + idText(f.id, f.ext) + (f.ext ? '<small>29-bit</small>' : '') + (f.bgNew ? '<small>new</small>' : '') + '</td><td class="lbl">' + esc(this.labels[k] || '') + '</td><td><span class="bytes">' + b + '</span></td><td class="n">' + (f.rate < 10 ? f.rate.toFixed(1) : Math.round(f.rate)) + '</td><td class="n">' + f.count + '</td></tr>';
+    }).join('');
+  },
+  select(k) {
+    this.sel = k; this.hist = [];
+    const f = this.frames.get(k);
+    if (f) {
+      const prev = this.editor && this.editor.k === k ? this.editor : null;
+      this.editor = prev || { k, sig: 'rpm', id: f.id, ext: f.ext, be: true, signed: false, start: 7, len: 8, scale: 1, offset: 0, unit: 'native', mux: null, byteA: null, byteB: null };
+    }
+    this.sendFocus(); this.draw(true); this.drawDetail();
+    const d = $('#snDetail'); if (d) d.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  },
+  openRule(sig) {
+    const r = App.S.canRules.find((x) => x.sig === sig); if (!r) return;
+    const k = this.key(r.id, r.ext);
+    this.editor = { k, sig, id: r.id, ext: !!r.ext, be: !!r.be, signed: !!r.signed, start: r.start, len: r.len, scale: r.scale, offset: r.offset, unit: r.unit || 'native', mux: r.mux || null, byteA: null, byteB: null };
+    if (!this.frames.has(k)) this.frames.set(k, { id: r.id, ext: !!r.ext, dlc: 8, data: [0, 0, 0, 0, 0, 0, 0, 0], count: 0, t: performance.now(), rate: 0, byteT: new Array(8).fill(0), byteN: new Array(8).fill(0), bitT: new Array(64).fill(0), bg: 0, first: performance.now(), placeholder: true });
+    this.select(k);
+    if (!this.running && App.S.canOn) this.start();
+  },
+  drawDetail() {
+    const d = $('#snDetail'); if (!d) return;
+    const f = this.frames.get(this.sel), e = this.editor;
+    if (!f || !e) { d.innerHTML = ''; return; }
+    const sig = SIGS.find((s) => s.k === e.sig);
+    d.innerHTML = '<div class="card"><h2>Message ' + idText(f.id, f.ext) + (f.ext ? ' (29-bit)' : '') + ' <button class="sm" data-act="snClose">Close</button></h2>' +
+      '<div class="row" style="margin-bottom:12px"><label for="snLabel" class="dim">Your name for it</label><input type="text" id="snLabel" data-local="1" maxlength="24" placeholder="e.g. engine" value="' + esc(this.labels[this.sel] || '') + '"></div>' +
+      '<div class="grid2"><div><div class="bitgrid" id="bitGrid"></div><p class="note">Click a byte number to pick whole bytes (click a second byte to pick a range). Click a bit to move the start bit. The orange frame marks the most significant bit.</p></div>' +
+      '<div><div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="dim" style="font-size:12px">Value now</div><div class="valbig" id="snVal">–</div><div class="dim mono" id="snRaw"></div></div></div>' +
+      '<canvas class="chart" id="snChart" width="600" height="150" style="margin-top:8px"></canvas><p class="note">Last 30 seconds of the value. A good match moves with what you are doing in the car.</p></div></div>' +
+      '<div class="grid2" style="margin-top:6px"><div>' +
+      field('Byte order', '<div class="seg" role="radiogroup"><button type="button" role="radio" data-ed="be" data-v="1" aria-checked="' + e.be + '">Big-endian</button><button type="button" role="radio" data-ed="be" data-v="0" aria-checked="' + !e.be + '">Little-endian</button></div>', 'Big-endian (Motorola) is most common on GM, Ford and Chrysler; little-endian (Intel) on many aftermarket ECUs.') +
+      field('Start bit', '<input type="number" id="edStart" data-local="1" min="0" max="63" value="' + e.start + '">') +
+      field('Length', '<input type="number" id="edLen" data-local="1" min="1" max="32" value="' + e.len + '"> <span class="dim">bits</span>') +
+      field('Signed', '<label class="sw"><input type="checkbox" id="edSigned" data-local="1"' + (e.signed ? ' checked' : '') + '><span></span></label>') +
+      field('Only when a byte matches', '<label class="sw"><input type="checkbox" id="edMux" data-local="1"' + (e.mux ? ' checked' : '') + '><span></span></label>' +
+        (e.mux ? ' byte <input type="number" id="edMuxB" data-local="1" min="0" max="7" value="' + e.mux.byte + '" style="width:64px"> = <input type="text" id="edMuxV" data-local="1" value="' + hex2(e.mux.value) + '" style="width:56px" class="mono">' : ''), 'For messages that carry different readings depending on one byte.') +
+      '</div><div>' +
+      field('Scale', '<input type="number" id="edScale" data-local="1" step="any" value="' + e.scale + '"> <span class="row" style="gap:4px"><button class="sm" data-act="edScale" data-v="1">×1</button><button class="sm" data-act="edScale" data-v="0.25">×0.25</button><button class="sm" data-act="edScale" data-v="0.1">×0.1</button><button class="sm" data-act="edScale" data-v="0.01">×0.01</button></span>') +
+      field('Offset', '<input type="number" id="edOffset" data-local="1" step="any" value="' + e.offset + '"> <button class="sm" data-act="edOffset" data-v="-40">−40</button>', 'Value = raw × scale + offset. Temperatures are often sent as °C + 40.') +
+      field('Reading', '<select id="edSig" data-local="1">' + SIGS.map((s) => '<option value="' + s.k + '"' + (s.k === e.sig ? ' selected' : '') + '>' + s.name + '</option>').join('') + '</select>') +
+      field('Unit the car sends', '<select id="edUnit" data-local="1">' + sig.units.map(([u, l]) => '<option value="' + u + '"' + (u === e.unit ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>') +
+      '</div></div><div class="row" style="margin-top:10px"><button class="pri" data-act="ruleSave">Save as the ' + sig.name.toLowerCase() + ' rule</button><span class="dim" id="edMsg"></span></div></div>';
+    this.drawBits(); this.drawLive();
+    const bind = (id, fn) => { const el = $('#' + id); if (el) el.addEventListener('change', fn); };
+    bind('snLabel', (ev) => { const v = ev.target.value.trim(); if (v) this.labels[this.sel] = v; else delete this.labels[this.sel]; store.set('canLabels', this.labels); this.draw(true); });
+    bind('edStart', (ev) => { e.start = Math.max(0, Math.min(63, +ev.target.value | 0)); e.byteA = null; this.drawBits(); });
+    bind('edLen', (ev) => { e.len = Math.max(1, Math.min(32, +ev.target.value | 0)); e.byteA = null; this.drawBits(); });
+    bind('edSigned', (ev) => { e.signed = ev.target.checked; });
+    bind('edMux', (ev) => { e.mux = ev.target.checked ? { byte: 0, value: f.data[0] || 0 } : null; this.drawDetail(); });
+    bind('edMuxB', (ev) => { e.mux.byte = Math.max(0, Math.min(7, +ev.target.value | 0)); });
+    bind('edMuxV', (ev) => { const v = parseInt(ev.target.value, 16); if (v >= 0 && v <= 255) e.mux.value = v; });
+    bind('edScale', (ev) => { const v = +ev.target.value; if (v) e.scale = v; });
+    bind('edOffset', (ev) => { e.offset = +ev.target.value || 0; });
+    bind('edSig', (ev) => { e.sig = ev.target.value; const s = SIGS.find((x) => x.k === e.sig); if (!s.units.some((u) => u[0] === e.unit)) e.unit = 'native'; this.drawDetail(); });
+    bind('edUnit', (ev) => { e.unit = ev.target.value; });
+  },
+  pickBytes(a, b) {
+    const e = this.editor; const lo = Math.min(a, b), hi = Math.max(a, b);
+    e.len = Math.min(32, (hi - lo + 1) * 8);
+    e.start = e.be ? lo * 8 + 7 : lo * 8;
+    if (e.len < (hi - lo + 1) * 8) toast('Rules hold up to 32 bits (4 bytes)', true);
+  },
+  drawBits() {
+    const g = $('#bitGrid'), e = this.editor, f = this.frames.get(this.sel); if (!g || !e || !f) return;
+    const inRule = new Set(bitsOf(e)), msb = bitsOf(e)[0], now = performance.now();
+    let h = '<div class="h"></div>'; for (let b = 7; b >= 0; b--) h += '<div class="h">' + b + '</div>';
+    for (let i = 0; i < 8; i++) {
+      h += '<div class="h" data-byte="' + i + '" style="cursor:pointer;color:var(--fg)" title="Pick byte ' + i + '">B' + i + '</div>';
+      for (let b = 7; b >= 0; b--) {
+        const n = i * 8 + b, on = i < f.dlc && ((f.data[i] >> b) & 1);
+        h += '<div class="b ' + (on ? 'on' : 'off') + (inRule.has(n) ? ' in' : '') + (n === msb ? ' msb' : '') + (now - f.bitT[n] < 900 && f.bitT[n] ? ' c' : '') + '" data-bit="' + n + '" title="bit ' + n + '">' + (i < f.dlc ? (on ? 1 : 0) : '·') + '</div>';
+      }
+    }
+    g.innerHTML = h;
+    const si = $('#edStart'), li = $('#edLen'); if (si) si.value = e.start; if (li) li.value = e.len;
+  },
+  ruleFromEditor() { const e = this.editor; return { sig: e.sig, on: true, id: e.id, ext: e.ext, be: e.be, signed: e.signed, start: e.start, len: e.len, scale: e.scale, offset: e.offset, unit: e.unit, mux: e.mux }; },
+  drawLive() {
+    // rule list values
+    $$('[data-sigval]').forEach((el) => {
+      const r = App.S.canRules.find((x) => x.sig === el.dataset.sigval); let v = null;
+      if (r && r.on) { const f = this.frames.get(this.key(r.id, r.ext)); if (f && !f.placeholder) v = ruleDecode(r, f.data); }
+      if (v == null && App.st && App.st.can) { if (el.dataset.sigval === 'rpm') v = App.st.can.rpm; if (el.dataset.sigval === 'speed') v = App.st.can.mph; }
+      el.textContent = v == null ? '–' : fmtSig(el.dataset.sigval, v);
+    });
+    const f = this.frames.get(this.sel), e = this.editor; if (!f || !e || !$('#snVal')) return;
+    this.drawBits();
+    const r = this.ruleFromEditor();
+    const fits = ruleFits(r), raw = fits ? ruleRaw(r, f.data) : null;
+    $('#snVal').textContent = raw == null ? '–' : fmtSig(e.sig, toGauge(raw, e.unit));
+    $('#snRaw').textContent = !fits ? 'The bits run past the end of the message' : raw == null ? (f.placeholder ? 'Waiting for this message…' : e.mux ? 'Byte ' + e.mux.byte + ' does not match right now' : '') : 'raw ' + (raw - e.offset) / e.scale + (e.unit !== 'native' ? ', car sends ' + +raw.toFixed(2) + ' ' + SIGS.find((s) => s.k === e.sig).units.find((u) => u[0] === e.unit)[1] : '');
+    this.drawChart(r);
+  },
+  drawChart(r) {
+    const c = $('#snChart'); if (!c) return;
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+    const cs = getComputedStyle(document.documentElement), now = performance.now();
+    const pts = this.hist.filter(([t]) => now - t < 30000).map(([t, d]) => [t, ruleRaw(r, d)]).filter(([, v]) => v != null).map(([t, v]) => [t, toGauge(v, r.unit)]);
+    ctx.font = '11px ' + cs.getPropertyValue('--mono'); ctx.fillStyle = cs.getPropertyValue('--muted');
+    if (pts.length < 2) { ctx.fillText(this.running ? 'Collecting…' : 'Start the sniffer to chart this message', 10, h / 2); return; }
+    let lo = Math.min(...pts.map((p) => p[1])), hi = Math.max(...pts.map((p) => p[1])); if (hi - lo < 1e-9) { hi += 1; lo -= 1; }
+    const pad = (hi - lo) * 0.1; lo -= pad; hi += pad;
+    const X = (t) => 44 + (w - 52) * (1 - (now - t) / 30000), Y = (v) => 8 + (h - 24) * (1 - (v - lo) / (hi - lo));
+    ctx.strokeStyle = cs.getPropertyValue('--line'); ctx.lineWidth = 1;
+    for (let i = 0; i <= 2; i++) { const v = lo + (hi - lo) * i / 2, y = Y(v); ctx.beginPath(); ctx.moveTo(44, y); ctx.lineTo(w - 8, y); ctx.stroke(); ctx.fillText(fmtNum(v), 2, y + 4); }
+    ctx.fillText('30 s ago', 44, h - 3); ctx.fillText('now', w - 30, h - 3);
+    ctx.strokeStyle = cs.getPropertyValue('--accent'); ctx.lineWidth = 2; ctx.beginPath();
+    pts.forEach(([t, v], i) => i ? ctx.lineTo(X(t), Y(v)) : ctx.moveTo(X(t), Y(v))); ctx.stroke();
+    const [lt, lv] = pts[pts.length - 1]; ctx.fillStyle = cs.getPropertyValue('--accent'); ctx.beginPath(); ctx.arc(X(lt), Y(lv), 3.5, 0, 7); ctx.fill();
+  },
+};
+function fmtNum(v) { const a = Math.abs(v); return a >= 1000 ? v.toFixed(0) : a >= 100 ? v.toFixed(0) : a >= 10 ? v.toFixed(1) : v.toFixed(2); }
+function fmtSig(sig, v) {
+  switch (sig) { case 'rpm': return Math.round(v) + ' rpm'; case 'speed': return U.spd(v, 1) + ' ' + U.spdU(); case 'coolant': return U.tmp(v) + ' ' + U.tmpU();
+    case 'volts': return v.toFixed(2) + ' V'; case 'fuel': return v.toFixed(0) + ' %'; case 'oil': return U.prs(v) + ' ' + U.prsU(); default: return fmtNum(v); }
+}
+document.addEventListener('click', (ev) => {
+  const row = ev.target.closest('#snBody tr[data-k]'); if (row) { Sniffer.select(row.dataset.k); return; }
+  const by = ev.target.closest('#bitGrid [data-byte]');
+  if (by) { const e = Sniffer.editor, i = +by.dataset.byte;
+    if (e.byteA == null || e.byteB != null) { e.byteA = i; e.byteB = null; Sniffer.pickBytes(i, i); } else { e.byteB = i; Sniffer.pickBytes(e.byteA, i); }
+    Sniffer.drawBits(); Sniffer.drawLive(); return; }
+  const bit = ev.target.closest('#bitGrid [data-bit]');
+  if (bit) { const e = Sniffer.editor; e.start = +bit.dataset.bit; e.byteA = null; if (!ruleFits(e)) { e.len = 1; } Sniffer.drawBits(); Sniffer.drawLive(); return; }
+  const ed = ev.target.closest('[data-ed="be"]');
+  if (ed) { const e = Sniffer.editor; e.be = ed.dataset.v === '1'; if (e.byteA != null) Sniffer.pickBytes(e.byteA, e.byteB == null ? e.byteA : e.byteB);
+    else if (!ruleFits(e)) e.start = e.be ? 7 : 0; Sniffer.drawDetail(); }
+});
+</script>
+<script>
+'use strict';
+// ===================== actions =====================
+async function saveRule(rule) {
+  await App.link.request('set', { s: { canRules: [rule] } });
+  const i = App.S.canRules.findIndex((x) => x.sig === rule.sig);
+  App.S.canRules[i] = Object.assign({ ext: false, be: false, signed: false, unit: 'native', mux: null }, rule);
+  const rr = $('#ruleRows'); if (rr) rr.innerHTML = ruleRows();
+}
+const USE_CAN = { rpm: ['srcRpm', 4], speed: ['speedSrc', 6], coolant: ['srcCoolant', 4], volts: ['srcVolts', 4], fuel: ['srcFuel', 4], oil: ['srcOil', 4] };
+let filePurpose = 'settings';
+const ACT = {
+  sweep: () => App.link.request('sweep').then(() => toast('Needles sweeping')),
+  testWarnOn: () => App.link.request('testWarnings', { on: true }).then(() => toast('Every warning lit')),
+  testWarnOff: () => App.link.request('testWarnings', { on: false }).then(() => toast('Warnings back to normal')),
+  benchOn: () => App.link.request('demo', { on: true }).then(() => toast('Bench demo on')),
+  benchOff: () => App.link.request('demo', { on: false }).then(() => toast('Bench demo off')),
+  calGpsStart: () => App.link.request('calGpsStart').then(() => toast('Drive one mile with a GPS fix')),
+  calMarkersStart: () => App.link.request('calMarkersStart').then(() => toast('Counting. Press Stop at the next marker')),
+  calMarkersStop: () => App.link.request('calMarkersStop', { miles: U.metric() ? +$('#calMiles').value / 1.609344 : +$('#calMiles').value }).then(() => { toast('Calibration saved'); return refreshSettings(); }),
+  calCancel: () => App.link.request('calCancel'),
+  tripZeroA: () => App.link.request('tripZero', { trip: 'A' }).then(() => toast('Trip A zeroed')),
+  tripZeroB: () => App.link.request('tripZero', { trip: 'B' }).then(() => toast('Trip B zeroed')),
+  tripShowA: () => App.link.request('tripShow', { trip: 'A' }), tripShowB: () => App.link.request('tripShow', { trip: 'B' }),
+  odoAsk: () => { const v = +$('#odoNew').value; if (!($('#odoNew').value !== '' && v >= 0 && v <= 999999)) return toast('Type the miles first (0 to 999999)', true); $('#odoTo').textContent = v.toFixed(1); $('#odoConfirm').classList.add('on'); },
+  odoNo: () => $('#odoConfirm').classList.remove('on'),
+  odoSet: () => App.link.request('odoSet', { miles: Math.round(+$('#odoNew').value * 10) / 10, phoneTime: Math.floor(Date.now() / 1000) }).then(() => { toast('Odometer set'); $('#odoConfirm').classList.remove('on'); loadOdoLog(); }),
+  rec: (b) => App.link.request('senderRecord', { point: b.dataset.pt }).then(() => { toast('Recorded'); return refreshSettings(); }),
+  recCool: (b) => { const k = b.dataset.pt === 'coolA' ? 'coolTempAF' : 'coolTempBF'; const tf = CONV.temp.from(+$('#n-' + k).value);
+    return App.link.request('senderRecord', { point: b.dataset.pt, tempF: tf }).then(() => { toast('Recorded'); return refreshSettings(); }); },
+  obdScan: () => App.link.request('obdScan').then(() => { showScan({ running: true, devices: [] }); setTimeout(() => App.link.request('obdScanResults').then(showScan).catch(() => {}), 3000); }),
+  obdPair: (b) => App.link.request('obdPair', { addr: b.dataset.addr, addrType: +b.dataset.at }).then(() => { toast('Reader saved, connecting'); return refreshSettings(); }),
+  obdForget: () => App.link.request('obdForget').then(() => { toast('Reader forgotten'); return refreshSettings(); }),
+  dtcRefresh: () => loadDtc(),
+  dtcAsk: () => $('#dtcConfirm').classList.add('on'), dtcNo: () => $('#dtcConfirm').classList.remove('on'),
+  dtcClear: () => App.link.request('dtcClear', { confirm: true }).then(() => { toast('Codes cleared'); $('#dtcConfirm').classList.remove('on'); setTimeout(loadDtc, 1500); }),
+  exportAll: () => offerFile('barracuda-settings-' + new Date().toISOString().slice(0, 10) + '.json', JSON.stringify(settingsForFile(), null, 1)),
+  importPick: () => { filePurpose = 'settings'; $('#fileIn').click(); },
+  copyExport: () => { const t = $('#exportText'); navigator.clipboard.writeText(t.value).then(() => toast('Copied')).catch(() => { t.select(); toast('Selected: press copy'); }); },
+  resetAsk: () => $('#resetConfirm').classList.add('on'), resetNo: () => $('#resetConfirm').classList.remove('on'),
+  factoryReset: () => App.link.request('factoryReset', { confirm: true }).then(() => { toast('Settings reset'); return refreshSettings(); }),
+  forgetAsk: () => $('#forgetConfirm').classList.add('on'), forgetNo: () => $('#forgetConfirm').classList.remove('on'),
+  forgetPhones: () => App.link.request('forgetPhones', { confirm: true }).then(() => toast('Phones forgotten')),
+  rulesExport: () => offerFile('barracuda-can-rules.json', JSON.stringify({ barracudaCanRules: 1, saved: new Date().toISOString(), canRate: App.S.canRate, rules: App.S.canRules, labels: Sniffer.labels }, null, 1)),
+  rulesImport: () => { filePurpose = 'rules'; $('#fileIn').click(); },
+  ruleEdit: (b) => Sniffer.openRule(b.dataset.sig),
+  ruleOff: (b) => saveRule(Object.assign({}, App.S.canRules.find((x) => x.sig === b.dataset.sig), { on: false })).then(() => toast('Rule turned off')),
+  ruleOn: (b) => saveRule(Object.assign({}, App.S.canRules.find((x) => x.sig === b.dataset.sig), { on: true })).then(() => toast('Rule turned on')),
+  snStart: () => Sniffer.start(), snStop: () => Sniffer.stop().then(() => { Sniffer.timer = setInterval(() => { if (App.page === 'can') { Sniffer.draw(); Sniffer.drawLive(); } }, 250); }),
+  snLearn: () => Sniffer.learn(), snClear: () => Sniffer.clear(),
+  snSave: () => offerFile('can-capture.csv', 'time_s,id,ext,dlc,data\n' + Sniffer.rec.map((r) => r.join(',')).join('\n'), 'text/csv'),
+  snClose: () => { Sniffer.sel = null; Sniffer.sendFocus(); Sniffer.draw(true); Sniffer.drawDetail(); },
+  edScale: (b) => { Sniffer.editor.scale = +b.dataset.v; $('#edScale').value = b.dataset.v; },
+  edOffset: (b) => { Sniffer.editor.offset = +b.dataset.v; $('#edOffset').value = b.dataset.v; },
+  ruleSave: async () => {
+    const r = Sniffer.ruleFromEditor(); const err = demoRuleCheck(r);
+    if (err) return toast(err, true);
+    await saveRule(r);
+    const g = SIGS.find((s) => s.k === r.sig);
+    $('#edMsg').innerHTML = sigInUse(g) ? 'Saved. The ' + g.gauge.toLowerCase() + ' now reads ' + g.name.toLowerCase() + ' from CAN.' : 'Saved. The ' + g.name.toLowerCase() + ' gauge still uses another source. <button class="sm pri" data-act="useCan" data-sig="' + g.k + '">Use CAN for ' + g.name.toLowerCase() + '</button>';
+    toast('Rule saved to the gauges');
+  },
+  fixVolts: () => { const r = Compare.result('volts'); const raw = r.an - App.S.voltsTrimCv / 100; const cv = Math.max(-200, Math.min(200, Math.round((r.net - raw) * 100)));
+    return setKeys({ voltsTrimCv: cv }).then((ok) => ok && (Compare.hist.volts = [], render())); },
+  fixCool: () => { const r = Compare.result('coolant'); const pt = r.net >= 180 ? 'coolB' : 'coolA';
+    return App.link.request('senderRecord', { point: pt, tempF: Math.round(r.net) }).then(() => { toast('Coolant ' + (pt === 'coolB' ? 'hot' : 'cold') + ' point set from the car'); Compare.hist.coolant = []; return refreshSettings(); }); },
+  useCan: (b) => { const [k, v] = USE_CAN[b.dataset.sig]; return setKeys({ [k]: v }).then((ok) => { if (ok) { $('#edMsg').textContent = 'Done: CAN first, the old source as backup.'; const rr = $('#ruleRows'); if (rr) rr.innerHTML = ruleRows(); } }); },
+};
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-act]'); if (!b || !App.link) return;
+  const f = ACT[b.dataset.act]; if (!f) return;
+  e.preventDefault();
+  Promise.resolve().then(() => f(b)).catch((err) => toast(err.message, true));
+});
+document.addEventListener('change', (e) => {
+  const el = e.target;
+  if (el.dataset.ign) App.link.request('dtcIgnore', { code: el.dataset.ign, ignore: el.checked }).then((r) => { showDtc(r); toast(el.checked ? 'Ignored' : 'Watched again'); }).catch((err) => toast(err.message, true));
+});
+$('#fileIn').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+  try {
+    const j = JSON.parse(await file.text());
+    if (j.barracudaCanRules) {
+      for (const r of j.rules || []) { const err = demoRuleCheck(r); if (err) throw new Error(r.sig + ': ' + err); }
+      if (j.canRate != null) await App.link.request('set', { s: { canRate: j.canRate } });
+      for (const r of j.rules || []) await App.link.request('set', { s: { canRules: [r] } });
+      if (j.labels) { Object.assign(Sniffer.labels, j.labels); store.set('canLabels', Sniffer.labels); }
+    } else if (j.barracudaDashSettings) {
+      await applySettingsFile(j.settings || {});
+      if (j.canLabels) { Object.assign(Sniffer.labels, j.canLabels); store.set('canLabels', Sniffer.labels); }
+    } else throw new Error('this is not a Barracuda settings or rules file');
+    await refreshSettings(); toast('Loaded into the gauges');
+  } catch (err) { toast('Not loaded: ' + err.message, true); }
+});
+async function refreshSettings() { const g = await App.link.request('get'); App.S = g.s; render(); }
+
+// ===================== connection =====================
+function setPill(text, cls) { const p = $('#connPill'); p.textContent = text; p.className = 'pill ' + (cls || ''); }
+function onMessage(m) {
+  if (m.t === 'status') { App.st = m; Compare.onStatus(m); if (App.page === 'status' || $('[data-live]')) live(); }
+  else if (m.t === 'can') Sniffer.onFrames(m.f || []);
+  else if (m.t === 'scan') showScan(m);
+}
+async function startSession(link) {
+  App.link = link; link.on(onMessage);
+  App.hello = await link.request('hello', null, 90000);
+  if ((App.hello.protocol || 1) < 2) toast('The gauges need a firmware update for CAN settings', true);
+  const g = await link.request('get'); App.S = g.s;
+  App.st = await link.request('status').catch(() => null);
+  await link.request('stream', { on: true });
+  const p = location.hash.slice(1);
+  App.page = PAGES.some((x) => x[0] === p) ? p : 'status';
+  setPill(link.kind === 'demo' ? 'Demo' : 'Connected', link.kind === 'demo' ? 'info' : 'ok');
+  $('#btnConnect').textContent = 'Disconnect'; $('#btnDemo').hidden = true;
+  render();
+}
+function endSession(msg) {
+  if (App.link) App.link.disconnect();
+  App.link = null; App.S = null; App.st = null; Sniffer.running = false; Sniffer.frames.clear(); Sniffer.sel = null; clearInterval(Sniffer.timer);
+  setPill('Not connected'); $('#btnConnect').textContent = 'Connect'; $('#btnDemo').hidden = false;
+  render(); if (msg) toast(msg, true);
+}
+async function connectBle() {
+  if (!BleLink.available()) { endSession(); return toast('Bluetooth is not available in this browser', true); }
+  const link = new BleLink();
+  setPill('Connecting…', 'warn');
+  try {
+    await link.connect(() => endSession('The gauges disconnected'));
+    setPill('Pairing…', 'warn'); toast('If asked, type the 6-digit code shown on the speedometer');
+    await startSession(link);
+  } catch (e) { link.disconnect(); setPill('Not connected'); if (e.name !== 'NotFoundError') toast('Could not connect: ' + e.message, true); }
+}
+async function connectDemo() { setPill('Starting demo…', 'warn'); await startSession(new DemoLink()); }
+$('#btnConnect').addEventListener('click', () => { if (App.link) endSession(); else connectBle(); });
+$('#btnDemo').addEventListener('click', () => connectDemo());
+render();
+// the preview has no Bluetooth: open straight into the demo there so the page shows what it does
+if (!BleLink.available()) connectDemo();
+</script>
+
+</html>
