@@ -282,6 +282,11 @@ function toGauge(v, unit) {
   switch (unit) { case 'kmh': return v / 1.609344; case 'c': return v * 9 / 5 + 32; case 'kpa': return v * 0.1450377;
     case 'bar': return v * 14.50377; case 'fraction': return v * 100; default: return v; }
 }
+// Same limits as the quad firmware (can_bus.c): how long a decoded value counts as fresh, and the
+// plausible range in gauge units. A value outside the range is not used by the gauges.
+const CAN_FRESH = { rpm: 1000, speed: 1000, coolant: 5000, volts: 5000, fuel: 5000, oil: 5000 };
+const CAN_RANGE = { rpm: [0, 15000], speed: [0, 250], coolant: [-60, 400], volts: [0, 30], fuel: [-10, 110], oil: [0, 250] };
+const inRange = (sig, v) => v >= CAN_RANGE[sig][0] && v <= CAN_RANGE[sig][1];
 function ruleDecode(rule, data) { if (!rule || !rule.on) return null; const r = ruleRaw(rule, data); return r == null ? null : toGauge(r, rule.unit); }
 const hex2 = (b) => b.toString(16).toUpperCase().padStart(2, '0');
 const idText = (id, ext) => ext ? id.toString(16).toUpperCase().padStart(8, '0') : id.toString(16).toUpperCase().padStart(3, '0');
@@ -320,7 +325,7 @@ class DemoLink extends Link {
     this.ignored = new Set(['P0700']);
     this.t0 = performance.now(); this.boostUntil = 0; this.stream = false; this.sniff = false; this.focus = null;
     this.cal = { mode: 'idle', pulses: 0, gpsMiles: 0, paused: false };
-    this.ids = new Map(); this.canAcc = new Map(); this.canVal = {}; this.ctr = 0; this.rateFound = 0; this.rateSearchT = 0;
+    this.ids = new Map(); this.canAcc = new Map(); this.canVal = {}; this.canBad = {}; this.ctr = 0; this.rateFound = 0; this.rateSearchT = 0;
     this.testWarn = false; this.benchDemo = false;
     this.timer = setInterval(() => this.tick(), 50);
   }
@@ -388,9 +393,13 @@ class DemoLink extends Link {
     for (let i = 0; i < 8; i++) if ((e.data[i] || 0) !== (data[i] || 0)) e.changed |= 1 << i;
     if (e.changed) e.dirty = true;
     e.data = data.slice(); e.dlc = data.length; e.count++;
-    this.S.canRules.forEach((r) => { if (r.on && r.id === d.id && !!r.ext === !!d.ext) { const v = ruleDecode(r, data); if (v != null) this.canVal[r.sig] = { v, t: performance.now() }; } });
+    this.S.canRules.forEach((r) => { if (r.on && r.id === d.id && !!r.ext === !!d.ext) { let v = ruleDecode(r, data); if (v == null) return;
+      if (!inRange(r.sig, v)) { this.canBad[r.sig] = performance.now(); delete this.canVal[r.sig]; return; }
+      if (r.sig === 'fuel') v = Math.min(100, Math.max(0, v));
+      this.canVal[r.sig] = { v, t: performance.now() }; } });
   }
-  canValue(sig) { const r = this.S.canRules.find((x) => x.sig === sig); const x = this.canVal[sig]; return this.S.canOn && r && r.on && x && performance.now() - x.t < 1000 ? x.v : null; }
+  canValue(sig) { const r = this.S.canRules.find((x) => x.sig === sig); const x = this.canVal[sig]; return this.S.canOn && r && r.on && x && performance.now() - x.t < CAN_FRESH[sig] ? x.v : null; }
+  canOutOfRange() { const now = performance.now(); return Object.keys(this.canBad || {}).filter((k) => now - this.canBad[k] < 3000); }
   sendSniff() {
     const now = performance.now(), out = [], picked = new Set();
     const put = (k, e) => { out.push([e.id, e.ext ? 1 : 0, e.dlc, e.data.map(hex2).join('').toLowerCase(), e.count & 0xFFFF, e.changed]); e.changed = 0; e.dirty = false; e.sent = now; picked.add(k); };
@@ -434,7 +443,7 @@ class DemoLink extends Link {
         rpmMissing: false, senderOpen: [], senderShort: [], raw: { fuelOhm: r1(senderOhmFor('fuel', c.fuel - 1.5, S), 1), oilOhm: 41.0, coolOhm: r1(senderOhmFor('coolant', c.coolC * 9 / 5 + 32 + (S.engGround ? 9 : 3), S), 1), battVolts: r1(c.volts - 0.04, 2), engineOffsetV: S.engGround ? null : 0.012 }, fw: '0.1' },
       can: { on: !!S.canOn, receiving: !!(S.canOn && this.ids.size && (S.canRate === 0 || S.canRate === 3)), errors: !!(S.canOn && S.canRate && S.canRate !== 3), tableFull: false,
         kbps: S.canOn && this.rateFound && (S.canRate === 0 || S.canRate === 3) ? 500 : 0, fps: S.canOn ? (S.canRate === 0 || S.canRate === 3 ? 247 : 0) : 0, ids: this.ids.size,
-        rpm: r1(canRpm, 0), mph: r1(canMph, 1), sniffing: this.sniff },
+        rpm: r1(canRpm, 0), mph: r1(canMph, 1), sniffing: this.sniff, outOfRange: this.canOutOfRange() },
       cal: Object.assign({}, this.cal, { gpsMiles: r1(this.cal.gpsMiles, 3) }), demo: this.benchDemo,
     };
   }
@@ -640,6 +649,14 @@ function warnList(w) { return WARN.filter(([b]) => w & b).map(([, n]) => n); }
 function pageStatus() {
   return '<h1>Status</h1><p class="lede">Live from the gauges, twice a second.</p><div id="statusBody">' + statusBody() + '</div>';
 }
+// All three gauges must run the same firmware: a gauge on another version ignores the speedo's
+// hub frames (README, Build).
+function fwMismatchCard() {
+  const s = App.st || {}, v = [(App.hello || {}).fw, s.tach && s.tach.online && s.tach.fw, s.quad && s.quad.online && s.quad.fw].filter(Boolean);
+  if (v.length < 2 || v.every((x) => x === v[0])) return '';
+  return '<div class="card" style="border-color:var(--crit)"><b>Firmware versions differ.</b> Speedo ' + esc((App.hello || {}).fw || '?') + ', tach ' + esc(s.tach && s.tach.fw || '?') + ', quad ' + esc(s.quad && s.quad.fw || '?') +
+    '. Flash all three gauges with the same version, or a gauge may stop following the others.</div>';
+}
 function statusBody() {
   const s = App.st;
   if (!s) return '<div class="card">Waiting for the first reading…</div>';
@@ -648,7 +665,7 @@ function statusBody() {
   const srcTag = (bit) => (q.fromCan & bit) ? 'CAN' : (q.fromObd & bit) ? 'OBD' : 'sender';
   const warns = warnList((q.warn || 0) | (t.warn || 0));
   const pill = (on, a, b) => '<span class="pill ' + (on ? 'ok' : 'crit') + '">' + (on ? a : b) + '</span>';
-  return '<div class="big" style="margin-bottom:14px">' +
+  return fwMismatchCard() + '<div class="big" style="margin-bottom:14px">' +
     '<div class="tile"><b>' + U.spd(s.mph) + '</b><span>' + U.spdU() + ' <em>from ' + esc(from) + '</em></span></div>' +
     '<div class="tile"><b>' + (t.rpm == null ? '–' : Math.round(t.rpm)) + '</b><span>rpm</span></div>' +
     '<div class="tile"><b>' + U.tmp(q.tempF) + '</b><span>coolant ' + U.tmpU() + ' <em>' + srcTag(2) + '</em></span></div>' +
@@ -734,8 +751,10 @@ function live() {
 const LIVE = {
   canState: (s) => { const c = s.can || {}; if (!App.S.canOn) return '<span class="pill">Off</span>';
     if (!c.on) return '<span class="pill warn">Starting</span>';
-    if (c.receiving) return '<span class="pill ok">' + c.kbps + ' kbit/s</span> <span class="dim">' + c.fps + ' frames/s, ' + c.ids + ' IDs' + (c.tableFull ? ' (list full)' : '') + '</span>';
-    return '<span class="pill ' + (c.errors ? 'crit' : 'warn') + '">' + (c.errors ? 'Bus errors' : 'No traffic') + '</span> <span class="dim">' + (App.S.canRate === 0 ? 'Searching for the speed…' : c.errors ? 'Check the bit rate and the CAN H / L wires.' : 'Is the ignition on?') + '</span>'; },
+    const bad = (c.outOfRange || []).length ? ' <span class="pill crit">Out of range: ' + c.outOfRange.map((k) => esc(SIGS.find((x) => x.k === k)?.name || k)).join(', ') + '</span> <span class="dim">That rule gives impossible values and is being ignored. Check its start bit, length, byte order and scale.</span>' : '';
+    if (c.receiving) return '<span class="pill ok">' + c.kbps + ' kbit/s</span> <span class="dim">' + c.fps + ' frames/s, ' + c.ids + ' IDs' + (c.tableFull ? ' (list full)' : '') + '</span>' + bad;
+    return '<span class="pill ' + (c.errors ? 'crit' : 'warn') + '">' + (c.errors ? 'Bus errors' : 'No traffic') + '</span> <span class="dim">' + (App.S.canRate === 0 ? 'Searching for the speed…' : c.errors ? 'Check the bit rate and the CAN H / L wires.' : 'Is the ignition on?') + '</span>' +
+      '<div class="dim" style="margin-top:6px">The gauges read 125k, 250k, 500k and 1M classic CAN. CAN FD and slow body buses (33.3k, 50k, 83.3k) are not supported and will never lock.</div>'; },
   compare: () => compareCard(),
   rawFuel: (s) => s.quad && s.quad.raw && s.quad.raw.fuelOhm != null ? s.quad.raw.fuelOhm.toFixed(1) + ' Ω' : '–',
   rawOil: (s) => s.quad && s.quad.raw && s.quad.raw.oilOhm != null ? s.quad.raw.oilOhm.toFixed(1) + ' Ω' : '–',
@@ -1105,7 +1124,8 @@ const Sniffer = {
     this.drawBits();
     const r = this.ruleFromEditor();
     const fits = ruleFits(r), raw = fits ? ruleRaw(r, f.data) : null;
-    $('#snVal').textContent = raw == null ? '–' : fmtSig(e.sig, toGauge(raw, e.unit));
+    const gv = raw == null ? null : toGauge(raw, e.unit);
+    $('#snVal').textContent = gv == null ? '–' : fmtSig(e.sig, gv) + (inRange(e.sig, gv) ? '' : '  (out of range, the gauge would ignore it)');
     $('#snRaw').textContent = !fits ? 'The bits run past the end of the message' : raw == null ? (f.placeholder ? 'Waiting for this message…' : e.mux ? 'Byte ' + e.mux.byte + ' does not match right now' : '') : 'raw ' + (raw - e.offset) / e.scale + (e.unit !== 'native' ? ', car sends ' + +raw.toFixed(2) + ' ' + SIGS.find((s) => s.k === e.sig).units.find((u) => u[0] === e.unit)[1] : '');
     this.drawChart(r);
   },
